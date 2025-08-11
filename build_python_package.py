@@ -15,6 +15,8 @@ import sys
 import tempfile
 from typing import Optional, List, Dict, Any
 
+from ros_python_wheels.list_deps import get_deps
+
 
 class ROSPythonPackageBuilder:
     def __init__(self, ros_distro: str = "jazzy"):
@@ -92,8 +94,9 @@ class ROSPythonPackageBuilder:
         self, package_path: str, egg_info_path: Optional[str] = None
     ) -> Dict[str, Any]:
         """Extract package information from __init__.py, setup metadata, or egg-info."""
+        package_basename = os.path.basename(package_path)
         info = {
-            "name": os.path.basename(package_path),
+            "name": f"ros-{package_basename.replace('_', '-')}",  # Add ros- prefix and convert underscores to dashes
             "version": "0.0.0",
             "description": "",
             "author": "",
@@ -112,7 +115,12 @@ class ROSPythonPackageBuilder:
                     # Parse PKG-INFO format
                     for line in content.split("\n"):
                         if line.startswith("Name: "):
-                            info["name"] = line[6:].strip()
+                            original_name = line[6:].strip()
+                            # Ensure ros- prefix is maintained
+                            if not original_name.startswith("ros-"):
+                                info["name"] = f"ros-{original_name.replace('_', '-')}"
+                            else:
+                                info["name"] = original_name
                         elif line.startswith("Version: "):
                             info["version"] = line[9:].strip()
                         elif line.startswith("Summary: "):
@@ -189,10 +197,97 @@ class ROSPythonPackageBuilder:
 
         return info
 
+    def gather_dependencies(self, ros_package: str) -> Dict[str, List[str]]:
+        """Gather Python and ROS Python dependencies using get_deps."""
+        ros_python_deps: set[str] = set()
+        ros_runtime_deps: set[str] = set()
+        ros_other_deps: set[str] = set()
+        python_deps: set[str] = set()
+        system_deps: set[str] = set()
+        processed: set[str] = set()
+
+        print(f"Gathering dependencies for {ros_package}...")
+
+        try:
+            get_deps(
+                ros_package,
+                ros_python_deps,
+                ros_runtime_deps,
+                ros_other_deps,
+                python_deps,
+                system_deps,
+                processed,
+                level=0,
+                recurse=True,
+            )
+
+            # Convert sets to sorted lists
+            dependencies = {
+                "python": sorted(python_deps),
+                "ros_python": sorted(ros_python_deps),
+                "ros_runtime": sorted(ros_runtime_deps),
+                "ros_other": sorted(ros_other_deps),
+                "system": sorted(system_deps),
+            }
+
+            print("Found dependencies:")
+            print(f"  Python: {len(dependencies['python'])} packages")
+            print(f"  ROS Python: {len(dependencies['ros_python'])} packages")
+            print(f"  ROS Runtime: {len(dependencies['ros_runtime'])} packages")
+            print(f"  ROS Other: {len(dependencies['ros_other'])} packages")
+            print(f"  System: {len(dependencies['system'])} packages")
+
+            return dependencies
+
+        except Exception as e:
+            print(f"Warning: Could not gather dependencies for {ros_package}: {e}")
+            return {
+                "python": [],
+                "ros_python": [],
+                "ros_runtime": [],
+                "ros_other": [],
+                "system": [],
+            }
+
     def create_setup_py(
         self, temp_dir: str, package_info: Dict[str, Any], package_name: str
     ) -> str:
         """Create a setup.py file for the package."""
+
+        # Prepare install_requires list from dependencies
+        install_requires = []
+
+        # Add Python dependencies
+        if "dependencies" in package_info and "python" in package_info["dependencies"]:
+            for dep in package_info["dependencies"]["python"]:
+                # Convert debian package names to pip package names where possible
+                if dep.startswith("python3-"):
+                    pip_name = dep[8:].replace(
+                        "-", "_"
+                    )  # Remove python3- prefix and convert dashes
+                    install_requires.append(pip_name)
+                else:
+                    install_requires.append(dep)
+
+        # Add ROS Python dependencies as pip installable packages with ros- prefix
+        if (
+            "dependencies" in package_info
+            and "ros_python" in package_info["dependencies"]
+        ):
+            for dep in package_info["dependencies"]["ros_python"]:
+                # Convert ROS package names to pip package names with ros- prefix
+                pip_name = f"ros-{dep.replace('_', '-')}"
+                install_requires.append(pip_name)
+
+        # Format install_requires for the setup.py
+        if install_requires:
+            install_requires_str = ",\n        ".join(
+                f'"{dep}"' for dep in install_requires
+            )
+            install_requires_section = f"[\n        {install_requires_str},\n    ]"
+        else:
+            install_requires_section = "[]"
+
         setup_py_content = f'''#!/usr/bin/env python3
 
 from setuptools import setup, find_packages
@@ -222,10 +317,7 @@ setup(
     packages=find_packages(),
     package_data=package_data,
     include_package_data=True,
-    install_requires=[
-        # Add any Python dependencies here
-        # Note: ROS dependencies should be handled separately
-    ],
+    install_requires={install_requires_section},
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
@@ -304,8 +396,12 @@ global-exclude __pycache__
         package_info = self.extract_package_info(python_package_path, egg_info_path)
         print(f"Package info: {package_info}")
 
+        # Step 4.5: Gather dependencies
+        dependencies = self.gather_dependencies(ros_package)
+        package_info["dependencies"] = dependencies
+
         # Step 5: Create temporary build directory
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with tempfile.TemporaryDirectory(delete=False) as temp_dir:
             print(f"Using temporary directory: {temp_dir}")
 
             # Copy the Python package to temp directory
@@ -337,6 +433,8 @@ global-exclude __pycache__
                     "wheel",
                     "--no-build-isolation",
                     "--wheel-dir",
+                    os.path.abspath(output_dir),
+                    "--find-links",  # TODO (Yifei): may need to adjust this
                     os.path.abspath(output_dir),
                     temp_dir,
                 ]

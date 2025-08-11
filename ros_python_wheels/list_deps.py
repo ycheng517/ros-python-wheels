@@ -69,7 +69,7 @@ def categorize_ros_package(debian_package_name: str) -> str:
         return "other"
 
 
-def get_all_deps_catkin(
+def get_deps(
     package_name: str,
     ros_python_deps: set[str],
     ros_runtime_deps: set[str],
@@ -78,9 +78,24 @@ def get_all_deps_catkin(
     system_deps: set[str],
     processed: set[str],
     level: int = 0,
+    recurse: bool = True,
 ):
     """
     Recursively finds all dependencies for a ROS package using catkin package.xml.
+
+    Categorizes deps into ROS (python/runtime/other), Python, and system dependencies.
+    Only recurses into ROS dependencies.
+
+    Args:
+        package_name: The name of the ROS package to analyze.
+        ros_python_deps: Set to collect ROS Python dependencies.
+        ros_runtime_deps: Set to collect ROS runtime dependencies.
+        ros_other_deps: Set to collect other ROS dependencies.
+        python_deps: Set to collect Python dependencies.
+        system_deps: Set to collect system dependencies.
+        processed: Set to keep track of processed packages to avoid cycles.
+        level: Current recursion level for indentation.
+        recurse: Whether to recurse into ROS dependencies.
     """
     if package_name in processed:
         return
@@ -130,9 +145,9 @@ def get_all_deps_catkin(
                 indent = "  " * level
                 print(f"{indent}└─ {dep_name} -> {debian_name} ({category})")
 
-                # Only recurse into ROS dependencies
-                if debian_name.startswith("ros-"):
-                    get_all_deps_catkin(
+                # Only recurse into ROS dependencies if recursion is enabled
+                if recurse and debian_name.startswith("ros-"):
+                    get_deps(
                         dep_name,
                         ros_python_deps,
                         ros_runtime_deps,
@@ -141,6 +156,7 @@ def get_all_deps_catkin(
                         system_deps,
                         processed,
                         level + 1,
+                        recurse,
                     )
 
     except Exception as e:
@@ -148,7 +164,7 @@ def get_all_deps_catkin(
         print(f"{indent}└─ Error processing {package_name}: {e}")
 
 
-def parse_catkin_package(package_name: str):
+def parse_catkin_package(package_name: str, recurse: bool = True):
     """
     Parse a catkin package and show all its dependencies categorized.
     """
@@ -158,13 +174,6 @@ def parse_catkin_package(package_name: str):
             print(f"Error: Package '{package_name}' not found at {package_path}")
             return
 
-        pkg = parse_package(package_path)
-
-        print(f"Dependencies for: {pkg.name} 🌳")
-        print("Build dependencies:", [d.name for d in pkg.build_depends])
-        print("Exec dependencies:", [d.name for d in pkg.exec_depends])
-        print()
-
         # Sets to keep track of different types of dependencies
         ros_python_deps: set[str] = set()
         ros_runtime_deps: set[str] = set()
@@ -173,7 +182,7 @@ def parse_catkin_package(package_name: str):
         system_deps: set[str] = set()
         processed: set[str] = set()
 
-        get_all_deps_catkin(
+        get_deps(
             package_name,
             ros_python_deps,
             ros_runtime_deps,
@@ -181,6 +190,7 @@ def parse_catkin_package(package_name: str):
             python_deps,
             system_deps,
             processed,
+            recurse=recurse,
         )
 
         print("\n🐍 ROS Python Packages:")
@@ -212,6 +222,11 @@ if __name__ == "__main__":
         description="Parse a Catkin package and categorize its dependencies"
     )
     parser.add_argument("package_name", help="The name of the Catkin package to parse")
+    parser.add_argument(
+        "--no-recurse",
+        action="store_true",
+        help="Disable recursive dependency resolution (only show direct dependencies)",
+    )
     args = parser.parse_args()
 
-    parse_catkin_package(args.package_name)
+    parse_catkin_package(args.package_name, recurse=not args.no_recurse)
