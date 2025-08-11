@@ -217,7 +217,7 @@ class ROSPythonPackageBuilder:
             system_deps,
             processed,
             level=0,
-            recurse=True,
+            recurse=False,
         )
 
         # Convert sets to sorted lists
@@ -238,6 +238,180 @@ class ROSPythonPackageBuilder:
 
         return dependencies
 
+    def get_all_ros_python_dependencies(self, ros_package: str) -> List[str]:
+        """Get all ROS Python dependencies recursively."""
+        ros_python_deps: set[str] = set()
+        ros_runtime_deps: set[str] = set()
+        ros_other_deps: set[str] = set()
+        python_deps: set[str] = set()
+        system_deps: set[str] = set()
+        processed: set[str] = set()
+
+        print(f"Gathering all ROS Python dependencies for {ros_package}...")
+
+        get_deps(
+            ros_package,
+            ros_python_deps,
+            ros_runtime_deps,
+            ros_other_deps,
+            python_deps,
+            system_deps,
+            processed,
+            level=0,
+            recurse=True,  # Enable recursion to get all dependencies
+        )
+
+        return sorted(ros_python_deps)
+
+    def wheel_exists(self, package_name: str, output_dir: str) -> bool:
+        """Check if a wheel file already exists for the given package."""
+        if not os.path.exists(output_dir):
+            return False
+
+        # Convert package name to expected wheel prefix (ros- prefix with underscores)
+        wheel_prefix = f"ros_{package_name.replace('-', '_')}"
+
+        for filename in os.listdir(output_dir):
+            if filename.startswith(wheel_prefix) and filename.endswith(".whl"):
+                print(f"Found existing wheel for {package_name}: {filename}")
+                return True
+
+        return False
+
+    def is_ros_python_package(self, ros_package: str) -> bool:
+        """Check if it's a ROS python package (but not a system python package)."""
+        if ros_package.startswith("python3-"):
+            return False
+
+        debian_package = self.resolve_debian_package(ros_package)
+        if not debian_package:
+            return False
+
+        files = self.get_package_files(debian_package)
+        python_package_path = self.find_python_package_path(files, ros_package)
+        return python_package_path is not None
+
+    def get_build_order(
+        self,
+        ros_package: str,
+        visited: Optional[set[str]] = None,
+        order: Optional[list[str]] = None,
+    ) -> list[str]:
+        """Determine the build order for a package and its dependencies using topological sort."""
+        if visited is None:
+            visited = set()
+        if order is None:
+            order = []
+
+        if ros_package in visited:
+            return order
+
+        visited.add(ros_package)
+
+        # Only add to build order if it's a Python package
+        if self.is_ros_python_package(ros_package):
+            # Get direct ROS Python dependencies for this package
+            ros_python_deps: set[str] = set()
+            ros_runtime_deps: set[str] = set()
+            ros_other_deps: set[str] = set()
+            python_deps: set[str] = set()
+            system_deps: set[str] = set()
+            processed: set[str] = set()
+
+            get_deps(
+                ros_package,
+                ros_python_deps,
+                ros_runtime_deps,
+                ros_other_deps,
+                python_deps,
+                system_deps,
+                processed,
+                level=0,
+                recurse=False,  # Only get direct dependencies for ordering
+            )
+
+            # Recursively get build order for each ROS Python dependency
+            for dep in ros_python_deps:
+                self.get_build_order(dep, visited, order)
+
+            # Add current package to order if not already present
+            if ros_package not in order:
+                order.append(ros_package)
+
+        return order
+
+    def get_ros_runtime_shared_libraries(
+        self, ros_runtime_deps: List[str]
+    ) -> Dict[str, List[str]]:
+        """Get shared library files for ROS runtime dependencies."""
+        shared_libs = {}
+        ros_lib_path = f"/opt/ros/{self.ros_distro}/lib"
+
+        print(
+            f"Looking for shared libraries for {len(ros_runtime_deps)} ROS runtime dependencies..."
+        )
+
+        for dep in ros_runtime_deps:
+            print(f"  Processing dependency: {dep}")
+
+            # First, resolve the debian package name for this ROS dependency
+            debian_package = self.resolve_debian_package(dep)
+            if not debian_package:
+                print(f"    Could not resolve debian package for {dep}")
+                continue
+
+            print(f"    Resolved to debian package: {debian_package}")
+
+            # Get files from the debian package
+            files = self.get_package_files(debian_package)
+            if not files:
+                print(f"    Could not get files for {debian_package}")
+                continue
+
+            # Find .so files in /opt/ros/<distro>/lib
+            lib_files = []
+            for file_path in files:
+                if file_path.startswith(ros_lib_path) and (
+                    file_path.endswith(".so") or ".so." in file_path
+                ):
+                    if os.path.exists(file_path):
+                        lib_files.append(file_path)
+
+            if lib_files:
+                shared_libs[dep] = lib_files
+                print(f"    Found {len(lib_files)} shared libraries:")
+                for lib in lib_files:
+                    print(f"      {lib}")
+            else:
+                print(f"    No shared libraries found for {dep}")
+
+        return shared_libs
+
+    def copy_shared_libraries(
+        self, temp_dir: str, package_name: str, shared_libs: Dict[str, List[str]]
+    ) -> None:
+        """Copy shared libraries to the package directory."""
+        if not shared_libs:
+            return
+
+        package_dir = os.path.join(temp_dir, package_name)
+        libs_dir = os.path.join(package_dir, "lib")
+
+        print(f"Copying shared libraries to {libs_dir}...")
+        os.makedirs(libs_dir, exist_ok=True)
+
+        for dep, lib_files in shared_libs.items():
+            print(f"  Copying libraries for {dep}:")
+            for lib_file in lib_files:
+                if os.path.exists(lib_file):
+                    lib_name = os.path.basename(lib_file)
+                    dest_path = os.path.join(libs_dir, lib_name)
+                    try:
+                        shutil.copy2(lib_file, dest_path)
+                        print(f"    Copied {lib_name}")
+                    except Exception as e:
+                        print(f"    Error copying {lib_file}: {e}")
+
     def create_setup_py(
         self, temp_dir: str, package_info: Dict[str, Any], package_name: str
     ) -> str:
@@ -254,6 +428,9 @@ class ROSPythonPackageBuilder:
                     pip_name = dep[8:].replace(
                         "-", "_"
                     )  # Remove python3- prefix and convert dashes
+                    # special case for pyyaml
+                    if pip_name == "yaml":
+                        pip_name = "pyyaml"
                     install_requires.append(pip_name)
                 else:
                     install_requires.append(dep)
@@ -402,6 +579,16 @@ global-exclude __pycache__
                 print(f"Error copying package: {e}")
                 return False
 
+            # Step 5.5: Handle ROS runtime dependencies - copy shared libraries
+            if dependencies.get("ros_runtime"):
+                shared_libs = self.get_ros_runtime_shared_libraries(
+                    dependencies["ros_runtime"]
+                )
+                if shared_libs:
+                    self.copy_shared_libraries(temp_dir, ros_package, shared_libs)
+                else:
+                    print("No shared libraries found for ROS runtime dependencies")
+
             # Create setup.py
             setup_py_path = self.create_setup_py(temp_dir, package_info, ros_package)
             print(f"Created setup.py at: {setup_py_path}")
@@ -443,6 +630,53 @@ global-exclude __pycache__
                 print(f"stderr: {e.stderr}")
                 return False
 
+    def build_wheel_recursive(self, ros_package: str, output_dir: str = "dist") -> bool:
+        """Build a Python wheel for a ROS package and all its ROS Python dependencies."""
+        print(f"🚀 Starting recursive build for ROS package: {ros_package}")
+        print(f"📁 Output directory: {output_dir}")
+
+        # Create output directory
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Determine build order
+        print("\n🔍 Determining build order...")
+        build_order = self.get_build_order(ros_package)
+
+        if not build_order:
+            print(f"❌ No Python packages found to build for {ros_package}")
+            return False
+
+        print(f"📦 Build order determined ({len(build_order)} packages):")
+        for i, pkg in enumerate(build_order, 1):
+            print(f"  {i}. {pkg}")
+
+        # Build packages in order
+        built_packages: set[str] = set()
+
+        for pkg in build_order:
+            # Check if wheel already exists
+            if self.wheel_exists(pkg, output_dir):
+                print(f"\n✅ Wheel for {pkg} already exists, skipping build")
+                built_packages.add(pkg)
+                continue
+
+            print(
+                f"\n🔨 Building {pkg} ({len(built_packages) + 1}/{len(build_order)})..."
+            )
+            success = self.build_wheel(pkg, output_dir)
+
+            if success:
+                built_packages.add(pkg)
+                print(f"✅ Successfully built {pkg}")
+            else:
+                print(f"❌ Failed to build {pkg}")
+                print(f"💥 Recursive build failed at package {pkg}")
+                return False
+
+        print("\n🎉 Recursive build completed successfully!")
+        print(f"📦 Built packages: {sorted(built_packages)}")
+        return True
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -460,6 +694,12 @@ def main():
         help="Output directory for wheels (default: dist)",
     )
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
+    parser.add_argument(
+        "--recursive",
+        "-r",
+        action="store_true",
+        help="Build all ROS Python dependencies recursively before building the target package",
+    )
 
     args = parser.parse_args()
 
@@ -467,9 +707,14 @@ def main():
         print(f"Building wheel for: {args.package}")
         print(f"ROS distro: {args.ros_distro}")
         print(f"Output directory: {args.output_dir}")
+        print(f"Recursive mode: {args.recursive}")
 
     builder = ROSPythonPackageBuilder(ros_distro=args.ros_distro)
-    success = builder.build_wheel(args.package, args.output_dir)
+
+    if args.recursive:
+        success = builder.build_wheel_recursive(args.package, args.output_dir)
+    else:
+        success = builder.build_wheel(args.package, args.output_dir)
 
     if success:
         print(f"Successfully built wheel for {args.package}")
