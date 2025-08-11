@@ -208,46 +208,35 @@ class ROSPythonPackageBuilder:
 
         print(f"Gathering dependencies for {ros_package}...")
 
-        try:
-            get_deps(
-                ros_package,
-                ros_python_deps,
-                ros_runtime_deps,
-                ros_other_deps,
-                python_deps,
-                system_deps,
-                processed,
-                level=0,
-                recurse=True,
-            )
+        get_deps(
+            ros_package,
+            ros_python_deps,
+            ros_runtime_deps,
+            ros_other_deps,
+            python_deps,
+            system_deps,
+            processed,
+            level=0,
+            recurse=True,
+        )
 
-            # Convert sets to sorted lists
-            dependencies = {
-                "python": sorted(python_deps),
-                "ros_python": sorted(ros_python_deps),
-                "ros_runtime": sorted(ros_runtime_deps),
-                "ros_other": sorted(ros_other_deps),
-                "system": sorted(system_deps),
-            }
+        # Convert sets to sorted lists
+        dependencies = {
+            "python": sorted(python_deps),
+            "ros_python": sorted(ros_python_deps),
+            "ros_runtime": sorted(ros_runtime_deps),
+            "ros_other": sorted(ros_other_deps),
+            "system": sorted(system_deps),
+        }
 
-            print("Found dependencies:")
-            print(f"  Python: {len(dependencies['python'])} packages")
-            print(f"  ROS Python: {len(dependencies['ros_python'])} packages")
-            print(f"  ROS Runtime: {len(dependencies['ros_runtime'])} packages")
-            print(f"  ROS Other: {len(dependencies['ros_other'])} packages")
-            print(f"  System: {len(dependencies['system'])} packages")
+        print("Found dependencies:")
+        print(f"  Python: {len(dependencies['python'])} packages")
+        print(f"  ROS Python: {len(dependencies['ros_python'])} packages")
+        print(f"  ROS Runtime: {len(dependencies['ros_runtime'])} packages")
+        print(f"  ROS Other: {len(dependencies['ros_other'])} packages")
+        print(f"  System: {len(dependencies['system'])} packages")
 
-            return dependencies
-
-        except Exception as e:
-            print(f"Warning: Could not gather dependencies for {ros_package}: {e}")
-            return {
-                "python": [],
-                "ros_python": [],
-                "ros_runtime": [],
-                "ros_other": [],
-                "system": [],
-            }
+        return dependencies
 
     def create_setup_py(
         self, temp_dir: str, package_info: Dict[str, Any], package_name: str
