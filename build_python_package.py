@@ -630,26 +630,27 @@ class ROSPythonPackageBuilder:
             f'"{classifier}"' for classifier in self.setup_classifiers
         )
 
-    def create_runtime_setup_py(
-        self, temp_dir: str, package_info: Dict[str, Any], package_name: str
-    ) -> str:
-        """Create a setup.py file for a runtime library package."""
+    def create_runtime_setup_py(self, temp_dir, package_info, package_name):
+        target_pkg_dir = os.path.join(temp_dir, "ros_runtime_libs")
+        os.makedirs(target_pkg_dir, exist_ok=True)
+
+        # Make ros_runtime_libs a proper package
+        open(os.path.join(target_pkg_dir, "__init__.py"), "a").close()
+
+        # Move .so files into ros_runtime_libs/
+        src_pkg_dir = os.path.join(temp_dir, package_name)
+        for root, _, files in os.walk(src_pkg_dir):
+            for f in files:
+                if f.endswith((".so", ".so.*")) or ".so." in f:
+                    shutil.move(os.path.join(root, f), target_pkg_dir)
+
+        # Clean up empty dirs in original package
+        for root, dirs, files in os.walk(src_pkg_dir, topdown=False):
+            if not files and not dirs:
+                os.rmdir(root)
+
         setup_py_content = f'''#!/usr/bin/env python3
-
 from setuptools import setup, find_packages
-import os
-
-# Find all shared libraries
-package_data = {{}}
-
-# Include all .so files
-for root, dirs, files in os.walk("{package_name}"):
-    for file in files:
-        if file.endswith(('.so', '.so.*')) or '.so.' in file:
-            rel_path = os.path.relpath(os.path.join(root, file), "{package_name}")
-            if "{package_name}" not in package_data:
-                package_data["{package_name}"] = []
-            package_data["{package_name}"].append(rel_path)
 
 setup(
     name="{package_info["name"]}",
@@ -657,16 +658,16 @@ setup(
     description="""{package_info["description"].replace('"', '\\"')}""",
     author="{package_info["author"]}",
     author_email="{package_info["author_email"]}",
-    packages=find_packages(),
-    package_data=package_data,
+    packages=find_packages(include=["ros_runtime_libs"]),
+    package_data={{"ros_runtime_libs": ["*.so", "*.so.*"]}},
     include_package_data=True,
-    install_requires=[],  # Runtime libraries typically have no Python dependencies
+    install_requires=[],
     classifiers=[
         {self._get_classifiers_string()},
     ],
     python_requires=">=3.8",
-    zip_safe=False,  # Important for packages with shared libraries
-    has_ext_modules=lambda: True,  # Mark as having extensions for platform-specific wheels
+    zip_safe=False,
+    has_ext_modules=lambda: True,
 )
 '''
         return self._write_setup_py(temp_dir, setup_py_content)
