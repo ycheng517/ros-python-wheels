@@ -26,6 +26,17 @@ class ROSPythonPackageBuilder:
             f"/opt/ros/{ros_distro}/lib/python{self.python_version}/site-packages"
         )
 
+        # Common setup.py classifiers
+        self.setup_classifiers = [
+            "Development Status :: 4 - Beta",
+            "Intended Audience :: Developers",
+            "License :: OSI Approved :: Apache Software License",
+            "Programming Language :: Python :: 3",
+            "Programming Language :: Python :: 3.12",
+            "Topic :: Scientific/Engineering :: Artificial Intelligence",
+            "Topic :: Software Development :: Libraries :: Python Modules",
+        ]
+
     def resolve_debian_package(self, ros_package: str) -> Optional[str]:
         """Use rosdep to resolve ROS package name to debian package name."""
         try:
@@ -182,7 +193,8 @@ class ROSPythonPackageBuilder:
 
                 desc_elem = root.find("description")
                 if desc_elem is not None and desc_elem.text:
-                    info["description"] = desc_elem.text.strip()
+                    # Clean up description text - replace newlines and extra whitespace
+                    info["description"] = " ".join(desc_elem.text.strip().split())
 
                 # Get maintainer info
                 maintainer_elem = root.find("maintainer")
@@ -280,6 +292,38 @@ class ROSPythonPackageBuilder:
 
         return False
 
+    def runtime_wheel_exists(self, package_name: str, output_dir: str) -> bool:
+        """Check if a runtime wheel file already exists for the given package."""
+        if not os.path.exists(output_dir):
+            return False
+
+        # Convert package name to expected runtime wheel prefix
+        wheel_prefix = f"ros_{package_name.replace('-', '_')}_runtime"
+
+        for filename in os.listdir(output_dir):
+            if filename.startswith(wheel_prefix) and filename.endswith(".whl"):
+                print(f"Found existing runtime wheel for {package_name}: {filename}")
+                return True
+
+        return False
+
+    def linker_wheel_exists(self, package_name: str, output_dir: str) -> bool:
+        """Check if a linker wheel file already exists for the given package."""
+        if not os.path.exists(output_dir):
+            return False
+
+        # Convert package name to expected wheel prefix (ros- prefix with underscores)
+        wheel_prefix = f"ros_{package_name.replace('-', '_')}"
+
+        for filename in os.listdir(output_dir):
+            if filename.startswith(wheel_prefix) and filename.endswith(".whl"):
+                # Make sure it's not a runtime wheel
+                if not filename.startswith(f"{wheel_prefix}_runtime"):
+                    print(f"Found existing linker wheel for {package_name}: {filename}")
+                    return True
+
+        return False
+
     def is_ros_python_package(self, ros_package: str) -> bool:
         """Check if it's a ROS python package (but not a system python package)."""
         if ros_package.startswith("python3-"):
@@ -297,9 +341,13 @@ class ROSPythonPackageBuilder:
         self,
         ros_package: str,
         visited: Optional[set[str]] = None,
-        order: Optional[list[str]] = None,
-    ) -> list[str]:
-        """Determine the build order for a package and its dependencies using topological sort."""
+        order: Optional[list[tuple[str, str]]] = None,
+    ) -> list[tuple[str, str]]:
+        """Determine the build order for Python packages, runtime libraries, and linker packages.
+
+        Returns a list of tuples where each tuple is (package_name, package_type).
+        package_type is one of 'python', 'runtime', or 'linker'.
+        """
         if visited is None:
             visited = set()
         if order is None:
@@ -314,10 +362,12 @@ class ROSPythonPackageBuilder:
         if not debian_package:
             print(f"Could not resolve debian package for {ros_package}")
             return order
+
         package_type = categorize_debian_package(debian_package, self.ros_distro)
-        # Only add to build order if it's a Python package
-        if package_type in ("ros-python", "ros-other"):
-            # Get direct ROS Python dependencies for this package
+        if package_type in ("ros-python", "ros-runtime", "ros-other") and not (
+            ros_package.endswith("cmake") or ros_package.endswith("vendor")
+        ):
+            # Get dependencies for this package
             ros_python_deps: set[str] = set()
             ros_runtime_deps: set[str] = set()
             ros_other_deps: set[str] = set()
@@ -338,15 +388,27 @@ class ROSPythonPackageBuilder:
                 recurse=True,
             )
 
-            # Recursively get build order for each ROS Python dependency
+            # Recursively get build order for each dependency
             for dep in ros_python_deps:
                 self.get_build_order(dep, visited, order)
 
-            # Add current package to order if not already present
-            if package_type == "ros-python" and ros_package not in order:
-                order.append(ros_package)
+            for dep in ros_runtime_deps:
+                self.get_build_order(dep, visited, order)
+
+            for dep in ros_other_deps:
+                self.get_build_order(dep, visited, order)
+
+            # Add current package to build order
+            if package_type == "ros-python" and (ros_package, "python") not in order:
+                order.append((ros_package, "python"))
+            elif package_type == "ros-other" and (ros_package, "linker") not in order:
+                order.append((ros_package, "linker"))
+            elif (
+                package_type == "ros-runtime" and (ros_package, "runtime") not in order
+            ):
+                order.append((ros_package, "runtime"))
         else:
-            print(f"Skipping non-Python package: {ros_package} ({package_type})")
+            print(f"Skipping package: {ros_package} ({package_type})")
 
         return order
 
@@ -422,6 +484,193 @@ class ROSPythonPackageBuilder:
                     except Exception as e:
                         print(f"    Error copying {lib_file}: {e}")
 
+    def build_runtime_library_wheel(
+        self, ros_package: str, output_dir: str = "dist"
+    ) -> bool:
+        """Build a Python wheel for a ROS runtime library package containing only shared libraries."""
+        print(f"Building runtime library wheel for ROS package: {ros_package}")
+
+        # Step 1: Resolve debian package name
+        debian_package = self.resolve_debian_package(ros_package)
+        if not debian_package:
+            print(f"Could not resolve debian package for {ros_package}")
+            return False
+
+        print(f"Resolved to debian package: {debian_package}")
+
+        # Step 2: Get shared libraries for this package
+        shared_libs = self.get_ros_runtime_shared_libraries([ros_package])
+        if not shared_libs or ros_package not in shared_libs:
+            print(f"No shared libraries found for {ros_package}")
+            return False
+
+        lib_files = shared_libs[ros_package]
+        print(f"Found {len(lib_files)} shared libraries for {ros_package}")
+
+        # Step 3: Create package info for runtime library
+        package_info = {
+            "name": f"ros-{ros_package.replace('_', '-')}-runtime",
+            "version": "0.0.0",
+            "description": f"ROS {ros_package} runtime libraries",
+            "author": "ROS Community",
+            "author_email": "",
+            "dependencies": {
+                "python": [],
+                "ros_python": [],
+                "ros_runtime": [],
+                "ros_other": [],
+                "system": [],
+            },
+        }
+
+        # Try to get version from package.xml if available
+        try:
+            package_xml = f"/opt/ros/{self.ros_distro}/share/{ros_package}/package.xml"
+            if os.path.exists(package_xml):
+                import xml.etree.ElementTree as ET
+
+                tree = ET.parse(package_xml)
+                root = tree.getroot()
+                version_elem = root.find("version")
+                if version_elem is not None and version_elem.text:
+                    package_info["version"] = version_elem.text.strip()
+                desc_elem = root.find("description")
+                if desc_elem is not None and desc_elem.text:
+                    # Clean up description text - replace newlines and extra whitespace
+                    clean_desc = " ".join(desc_elem.text.strip().split())
+                    package_info["description"] = (
+                        f"ROS {ros_package} runtime libraries - {clean_desc}"
+                    )
+        except Exception as e:
+            print(f"Warning: Could not parse package.xml: {e}")
+
+        # Step 4: Create temporary build directory
+        with tempfile.TemporaryDirectory(delete=False) as temp_dir:
+            print(f"Using temporary directory: {temp_dir}")
+
+            # Create package directory structure
+            package_name = f"ros_{ros_package.replace('-', '_')}_runtime"
+            package_dest = os.path.join(temp_dir, package_name)
+            os.makedirs(package_dest, exist_ok=True)
+
+            # Create empty __init__.py to make it a Python package
+            init_file = os.path.join(package_dest, "__init__.py")
+            with open(init_file, "w") as f:
+                f.write(f'"""ROS {ros_package} runtime libraries package."""\n')
+
+            # Create lib directory and copy shared libraries
+            libs_dir = os.path.join(package_dest, "lib")
+            os.makedirs(libs_dir, exist_ok=True)
+
+            print(f"Copying {len(lib_files)} shared libraries to {libs_dir}...")
+            for lib_file in lib_files:
+                if os.path.exists(lib_file):
+                    lib_name = os.path.basename(lib_file)
+                    dest_path = os.path.join(libs_dir, lib_name)
+                    try:
+                        shutil.copy2(lib_file, dest_path)
+                        print(f"  Copied {lib_name}")
+                    except Exception as e:
+                        print(f"  Error copying {lib_file}: {e}")
+                        return False
+
+            # Create setup.py for runtime library package
+            setup_py_path = self.create_runtime_setup_py(
+                temp_dir, package_info, package_name
+            )
+            print(f"Created setup.py at: {setup_py_path}")
+
+            # Create MANIFEST.in
+            manifest_path = self.create_manifest_in(temp_dir, package_name)
+            print(f"Created MANIFEST.in at: {manifest_path}")
+
+            # Create output directory
+            os.makedirs(output_dir, exist_ok=True)
+
+            # Build the wheel
+            try:
+                cmd = [
+                    sys.executable,
+                    "-m",
+                    "pip",
+                    "wheel",
+                    "--no-build-isolation",
+                    "--wheel-dir",
+                    os.path.abspath(output_dir),
+                    "--find-links",
+                    os.path.abspath(output_dir),
+                    temp_dir,
+                ]
+                print(f"Running: {' '.join(cmd)}")
+
+                result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+                print("Runtime library wheel built successfully!")
+                print(f"Output: {result.stdout}")
+                if result.stderr:
+                    print(f"Warnings: {result.stderr}")
+
+                return True
+
+            except subprocess.CalledProcessError as e:
+                print(f"Error building runtime library wheel: {e}")
+                print(f"stdout: {e.stdout}")
+                print(f"stderr: {e.stderr}")
+                return False
+
+    def _write_setup_py(self, temp_dir: str, setup_py_content: str) -> str:
+        """Helper method to write setup.py content to file."""
+        setup_py_path = os.path.join(temp_dir, "setup.py")
+        with open(setup_py_path, "w") as f:
+            f.write(setup_py_content)
+        return setup_py_path
+
+    def _get_classifiers_string(self) -> str:
+        """Helper method to get formatted classifiers string for setup.py."""
+        return ",\n        ".join(
+            f'"{classifier}"' for classifier in self.setup_classifiers
+        )
+
+    def create_runtime_setup_py(
+        self, temp_dir: str, package_info: Dict[str, Any], package_name: str
+    ) -> str:
+        """Create a setup.py file for a runtime library package."""
+        setup_py_content = f'''#!/usr/bin/env python3
+
+from setuptools import setup, find_packages
+import os
+
+# Find all shared libraries
+package_data = {{}}
+
+# Include all .so files
+for root, dirs, files in os.walk("{package_name}"):
+    for file in files:
+        if file.endswith(('.so', '.so.*')) or '.so.' in file:
+            rel_path = os.path.relpath(os.path.join(root, file), "{package_name}")
+            if "{package_name}" not in package_data:
+                package_data["{package_name}"] = []
+            package_data["{package_name}"].append(rel_path)
+
+setup(
+    name="{package_info["name"]}",
+    version="{package_info["version"]}",
+    description="""{package_info["description"].replace('"', '\\"')}""",
+    author="{package_info["author"]}",
+    author_email="{package_info["author_email"]}",
+    packages=find_packages(),
+    package_data=package_data,
+    include_package_data=True,
+    install_requires=[],  # Runtime libraries typically have no Python dependencies
+    classifiers=[
+        {self._get_classifiers_string()},
+    ],
+    python_requires=">=3.8",
+    zip_safe=False,  # Important for packages with shared libraries
+    has_ext_modules=lambda: True,  # Mark as having extensions for platform-specific wheels
+)
+'''
+        return self._write_setup_py(temp_dir, setup_py_content)
+
     def create_setup_py(
         self, temp_dir: str, package_info: Dict[str, Any], package_name: str
     ) -> str:
@@ -453,6 +702,16 @@ class ROSPythonPackageBuilder:
             for dep in package_info["dependencies"]["ros_python"]:
                 # Convert ROS package names to pip package names with ros- prefix
                 pip_name = f"ros-{dep.replace('_', '-')}"
+                install_requires.append(pip_name)
+
+        # Add ROS runtime dependencies as pip installable runtime packages with ros- prefix
+        if (
+            "dependencies" in package_info
+            and "ros_runtime" in package_info["dependencies"]
+        ):
+            for dep in package_info["dependencies"]["ros_runtime"]:
+                # Convert ROS runtime package names to pip package names with ros- prefix and -runtime suffix
+                pip_name = f"ros-{dep.replace('_', '-')}-runtime"
                 install_requires.append(pip_name)
 
         # Format install_requires for the setup.py
@@ -487,7 +746,7 @@ for root, dirs, files in os.walk("{package_name}"):
 setup(
     name="{package_info["name"]}",
     version="{package_info["version"]}",
-    description="{package_info["description"]}",
+    description="""{package_info["description"].replace('"', '\\"')}""",
     author="{package_info["author"]}",
     author_email="{package_info["author_email"]}",
     packages=find_packages(),
@@ -508,14 +767,10 @@ setup(
     has_ext_modules=lambda: True,  # Mark as having extensions for platform-specific wheels
 )
 '''
-        setup_py_path = os.path.join(temp_dir, "setup.py")
-        with open(setup_py_path, "w") as f:
-            f.write(setup_py_content)
-
-        return setup_py_path
+        return self._write_setup_py(temp_dir, setup_py_content)
 
     def create_manifest_in(self, temp_dir: str, package_name: str) -> str:
-        """Create a MANIFEST.in file to include all binary files."""
+        """Create a MANIFEST.in file to include all package files."""
         manifest_content = f"""# Include all files in the package
 recursive-include {package_name} *
 global-exclude *.pyc
@@ -526,6 +781,110 @@ global-exclude __pycache__
             f.write(manifest_content)
 
         return manifest_path
+
+    def build_linker_wheel(self, ros_package: str, output_dir: str = "dist") -> bool:
+        """Build a Python wheel for a ROS other package as a linker package with dependencies only."""
+        print(f"Building linker wheel for ROS package: {ros_package}")
+
+        # Step 1: Resolve debian package name
+        debian_package = self.resolve_debian_package(ros_package)
+        if not debian_package:
+            print(f"Could not resolve debian package for {ros_package}")
+            return False
+
+        print(f"Resolved to debian package: {debian_package}")
+
+        # Step 2: Extract package info
+        package_info = {
+            "name": f"ros-{ros_package.replace('_', '-')}",
+            "version": "0.0.0",
+            "description": f"ROS {ros_package} linker package with dependencies",
+            "author": "ROS Community",
+            "author_email": "",
+            "dependencies": {},
+        }
+
+        # Try to get version and description from package.xml if available
+        try:
+            package_xml = f"/opt/ros/{self.ros_distro}/share/{ros_package}/package.xml"
+            if os.path.exists(package_xml):
+                import xml.etree.ElementTree as ET
+
+                tree = ET.parse(package_xml)
+                root = tree.getroot()
+                version_elem = root.find("version")
+                if version_elem is not None and version_elem.text:
+                    package_info["version"] = version_elem.text.strip()
+                desc_elem = root.find("description")
+                if desc_elem is not None and desc_elem.text:
+                    # Clean up description text - replace newlines and extra whitespace
+                    clean_desc = " ".join(desc_elem.text.strip().split())
+                    package_info["description"] = (
+                        f"ROS {ros_package} linker package - {clean_desc}"
+                    )
+        except Exception as e:
+            print(f"Warning: Could not parse package.xml: {e}")
+
+        # Step 3: Gather dependencies
+        dependencies = self.gather_dependencies(ros_package)
+        package_info["dependencies"] = dependencies
+
+        # Step 4: Create temporary build directory
+        with tempfile.TemporaryDirectory(delete=False) as temp_dir:
+            print(f"Using temporary directory: {temp_dir}")
+
+            # Create package directory structure
+            package_name = f"ros_{ros_package.replace('-', '_')}"
+            package_dest = os.path.join(temp_dir, package_name)
+            os.makedirs(package_dest, exist_ok=True)
+
+            # Create empty __init__.py to make it a Python package
+            init_file = os.path.join(package_dest, "__init__.py")
+            with open(init_file, "w") as f:
+                f.write(
+                    f'"""ROS {ros_package} linker package with dependencies only."""\n'
+                )
+
+            # Create setup.py for linker package
+            setup_py_path = self.create_setup_py(temp_dir, package_info, ros_package)
+            print(f"Created setup.py at: {setup_py_path}")
+
+            # Create MANIFEST.in
+            manifest_path = self.create_manifest_in(temp_dir, ros_package)
+            print(f"Created MANIFEST.in at: {manifest_path}")
+
+            # Create output directory
+            os.makedirs(output_dir, exist_ok=True)
+
+            # Build the wheel
+            try:
+                cmd = [
+                    sys.executable,
+                    "-m",
+                    "pip",
+                    "wheel",
+                    "--no-build-isolation",
+                    "--wheel-dir",
+                    os.path.abspath(output_dir),
+                    "--find-links",
+                    os.path.abspath(output_dir),
+                    temp_dir,
+                ]
+                print(f"Running: {' '.join(cmd)}")
+
+                result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+                print("Linker wheel built successfully!")
+                print(f"Output: {result.stdout}")
+                if result.stderr:
+                    print(f"Warnings: {result.stderr}")
+
+                return True
+
+            except subprocess.CalledProcessError as e:
+                print(f"Error building linker wheel: {e}")
+                print(f"stdout: {e.stdout}")
+                print(f"stderr: {e.stderr}")
+                return False
 
     def build_wheel(self, ros_package: str, output_dir: str = "dist") -> bool:
         """Build a Python wheel from a ROS package."""
@@ -589,16 +948,6 @@ global-exclude __pycache__
                 print(f"Error copying package: {e}")
                 return False
 
-            # Step 5.5: Handle ROS runtime dependencies - copy shared libraries
-            if dependencies.get("ros_runtime"):
-                shared_libs = self.get_ros_runtime_shared_libraries(
-                    dependencies["ros_runtime"]
-                )
-                if shared_libs:
-                    self.copy_shared_libraries(temp_dir, ros_package, shared_libs)
-                else:
-                    print("No shared libraries found for ROS runtime dependencies")
-
             # Create setup.py
             setup_py_path = self.create_setup_py(temp_dir, package_info, ros_package)
             print(f"Created setup.py at: {setup_py_path}")
@@ -641,47 +990,102 @@ global-exclude __pycache__
                 return False
 
     def build_wheel_recursive(self, ros_package: str, output_dir: str = "dist") -> bool:
-        """Build a Python wheel for a ROS package and all its ROS Python dependencies."""
+        """Build Python wheels for a ROS package and all its dependencies (both Python and runtime)."""
         print(f"🚀 Starting recursive build for ROS package: {ros_package}")
         print(f"📁 Output directory: {output_dir}")
 
         # Create output directory
         os.makedirs(output_dir, exist_ok=True)
 
-        # Determine build order
+        # Determine build order for both Python packages and runtime libraries
         print("\n🔍 Determining build order...")
         build_order = self.get_build_order(ros_package)
 
         if not build_order:
-            print(f"❌ No Python packages found to build for {ros_package}")
+            print(f"❌ No packages found to build for {ros_package}")
             return False
 
-        print(f"📦 Build order determined ({len(build_order)} packages):")
-        for i, pkg in enumerate(build_order, 1):
-            print(f"  {i}. {pkg}")
+        # Separate runtime, python, and linker packages for display
+        runtime_packages = [(pkg, typ) for pkg, typ in build_order if typ == "runtime"]
+        python_packages = [(pkg, typ) for pkg, typ in build_order if typ == "python"]
+        linker_packages = [(pkg, typ) for pkg, typ in build_order if typ == "linker"]
+
+        total_packages = len(build_order)
+        print(f"📦 Build order determined ({total_packages} total packages):")
+        if runtime_packages:
+            print(f"  Runtime library packages ({len(runtime_packages)}):")
+            for i, (pkg, _) in enumerate(runtime_packages, 1):
+                print(f"    {i}. {pkg}")
+        if python_packages:
+            print(f"  Python packages ({len(python_packages)}):")
+            for i, (pkg, _) in enumerate(python_packages, 1):
+                print(f"    {i}. {pkg}")
+        if linker_packages:
+            print(f"  Linker packages ({len(linker_packages)}):")
+            for i, (pkg, _) in enumerate(linker_packages, 1):
+                print(f"    {i}. {pkg}")
 
         # Build packages in order
         built_packages: set[str] = set()
 
-        for pkg in build_order:
-            # Check if wheel already exists
-            if self.wheel_exists(pkg, output_dir):
-                print(f"\n✅ Wheel for {pkg} already exists, skipping build")
-                built_packages.add(pkg)
-                continue
+        for i, (pkg, pkg_type) in enumerate(build_order, 1):
+            if pkg_type == "runtime":
+                # Check if runtime wheel already exists
+                if self.runtime_wheel_exists(pkg, output_dir):
+                    print(
+                        f"\n✅ Runtime wheel for {pkg} already exists, skipping build"
+                    )
+                    built_packages.add(f"{pkg}-runtime")
+                    continue
 
-            print(
-                f"\n🔨 Building {pkg} ({len(built_packages) + 1}/{len(build_order)})..."
-            )
-            success = self.build_wheel(pkg, output_dir)
+                print(
+                    f"\n🔨 Building runtime libraries for {pkg} ({i}/{total_packages})..."
+                )
+                success = self.build_runtime_library_wheel(pkg, output_dir)
 
-            if success:
-                built_packages.add(pkg)
-                print(f"✅ Successfully built {pkg}")
-            else:
-                print(f"❌ Failed to build {pkg}")
-                print(f"💥 Recursive build failed at package {pkg}")
-                return False
+                if success:
+                    built_packages.add(f"{pkg}-runtime")
+                    print(f"✅ Successfully built runtime wheel for {pkg}")
+                else:
+                    print(f"❌ Failed to build runtime wheel for {pkg}")
+                    print(f"💥 Recursive build failed at runtime package {pkg}")
+                    return False
+
+            elif pkg_type == "python":
+                # Check if wheel already exists
+                if self.wheel_exists(pkg, output_dir):
+                    print(f"\n✅ Wheel for {pkg} already exists, skipping build")
+                    built_packages.add(pkg)
+                    continue
+
+                print(f"\n🔨 Building Python package {pkg} ({i}/{total_packages})...")
+                success = self.build_wheel(pkg, output_dir)
+
+                if success:
+                    built_packages.add(pkg)
+                    print(f"✅ Successfully built {pkg}")
+                else:
+                    print(f"❌ Failed to build {pkg}")
+                    print(f"💥 Recursive build failed at package {pkg}")
+                    return False
+
+            elif pkg_type == "linker":
+                # Check if linker wheel already exists
+                if self.linker_wheel_exists(pkg, output_dir):
+                    print(f"\n✅ Linker wheel for {pkg} already exists, skipping build")
+                    built_packages.add(f"{pkg}-linker")
+                    continue
+
+                print(f"\n🔨 Building linker package {pkg} ({i}/{total_packages})...")
+                success = self.build_linker_wheel(pkg, output_dir)
+
+                if success:
+                    built_packages.add(f"{pkg}-linker")
+                    print(f"✅ Successfully built linker package {pkg}")
+                else:
+                    print(f"❌ Failed to build linker package {pkg}")
+                    print(f"💥 Recursive build failed at linker package {pkg}")
+                    return False
 
         print("\n🎉 Recursive build completed successfully!")
         print(f"📦 Built packages: {sorted(built_packages)}")
@@ -703,22 +1107,13 @@ def main():
         default="dist",
         help="Output directory for wheels (default: dist)",
     )
-    parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     parser.add_argument(
         "--no-recurse",
-        "-r",
         action="store_true",
-        help="Build all ROS Python dependencies recursively before building the target package",
+        help="Build only the target package without recursively building dependencies",
     )
 
     args = parser.parse_args()
-
-    if args.verbose:
-        print(f"Building wheel for: {args.package}")
-        print(f"ROS distro: {args.ros_distro}")
-        print(f"Output directory: {args.output_dir}")
-        print(f"Recursive mode: {args.recursive}")
-
     builder = ROSPythonPackageBuilder(ros_distro=args.ros_distro)
 
     if args.no_recurse:
