@@ -15,7 +15,7 @@ import sys
 import tempfile
 from typing import Optional, List, Dict, Any
 
-from ros_python_wheels.list_deps import get_deps
+from ros_python_wheels.list_deps import get_deps, categorize_debian_package
 
 
 class ROSPythonPackageBuilder:
@@ -216,6 +216,7 @@ class ROSPythonPackageBuilder:
             python_deps,
             system_deps,
             processed,
+            ros_distro=self.ros_distro,
             level=0,
             recurse=False,
         )
@@ -257,6 +258,7 @@ class ROSPythonPackageBuilder:
             python_deps,
             system_deps,
             processed,
+            ros_distro=self.ros_distro,
             level=0,
             recurse=True,  # Enable recursion to get all dependencies
         )
@@ -308,8 +310,13 @@ class ROSPythonPackageBuilder:
 
         visited.add(ros_package)
 
+        debian_package = self.resolve_debian_package(ros_package)
+        if not debian_package:
+            print(f"Could not resolve debian package for {ros_package}")
+            return order
+        package_type = categorize_debian_package(debian_package, self.ros_distro)
         # Only add to build order if it's a Python package
-        if self.is_ros_python_package(ros_package):
+        if package_type in ("ros-python", "ros-other"):
             # Get direct ROS Python dependencies for this package
             ros_python_deps: set[str] = set()
             ros_runtime_deps: set[str] = set()
@@ -326,8 +333,9 @@ class ROSPythonPackageBuilder:
                 python_deps,
                 system_deps,
                 processed,
+                ros_distro=self.ros_distro,
                 level=0,
-                recurse=False,  # Only get direct dependencies for ordering
+                recurse=True,
             )
 
             # Recursively get build order for each ROS Python dependency
@@ -335,8 +343,10 @@ class ROSPythonPackageBuilder:
                 self.get_build_order(dep, visited, order)
 
             # Add current package to order if not already present
-            if ros_package not in order:
+            if package_type == "ros-python" and ros_package not in order:
                 order.append(ros_package)
+        else:
+            print(f"Skipping non-Python package: {ros_package} ({package_type})")
 
         return order
 
@@ -695,7 +705,7 @@ def main():
     )
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     parser.add_argument(
-        "--recursive",
+        "--no-recurse",
         "-r",
         action="store_true",
         help="Build all ROS Python dependencies recursively before building the target package",
@@ -711,10 +721,10 @@ def main():
 
     builder = ROSPythonPackageBuilder(ros_distro=args.ros_distro)
 
-    if args.recursive:
-        success = builder.build_wheel_recursive(args.package, args.output_dir)
-    else:
+    if args.no_recurse:
         success = builder.build_wheel(args.package, args.output_dir)
+    else:
+        success = builder.build_wheel_recursive(args.package, args.output_dir)
 
     if success:
         print(f"Successfully built wheel for {args.package}")
