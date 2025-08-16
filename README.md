@@ -1,20 +1,33 @@
 # ROS Python Wheels
 
-This project helps convert ROS Python packages into Python wheels that can be distributed and installed via pip.
+This project helps convert ROS Python packages into Python wheels that can be installed via pip.
+A number of ROS Python wheels are uploaded to PyPi.
 
-## Features
+## Benefits
 
-- Convert individual ROS Python packages to wheels
-- **NEW**: Recursive building of all ROS Python dependencies
-- Automatic dependency resolution using rosdep
-- Support for shared libraries in ROS runtime dependencies
-- Package metadata extraction from package.xml and egg-info
+- **Easy Project Integration**: To include The ROS Python Client (rclpy) in a Python project, simply add `ros-rclpy[fastrtps]` to your `pyproject.toml`
+- **Portable** Allows ROS to be run on different linux distros. The only requirement is x86_64.
+- **Lightweight** rclpy all of its dependencies only takes up less than 25MB.
 
-## Usage
+## Example: Install and Run the RCL Python Client
+
+```bash
+# install rclpy
+pip install ros-rclpy[fastrtps]
+
+# set LD_LIBRARY_PATH to the ros_runtime_libs directory of site-packages
+# where ros-rclpy is installed
+export LD_LIBRARY_PATH=$(pip show ros-rclpy | awk '/^Location:/ {print $2}')/ros_runtime_libs
+
+# Run ROS
+python -c "import rclpy; rclpy.init()"
+```
+
+## Building Wheels
 
 ### Basic Usage
 
-Build a single ROS package:
+Build a single ROS package to the `dist/` directory:
 
 ```bash
 python3 build_python_package.py sensor_msgs
@@ -22,7 +35,7 @@ python3 build_python_package.py sensor_msgs
 
 ### Recursive Building
 
-Build a ROS package and all its ROS Python dependencies:
+Build a ROS package and all its dependencies to the `dist/` directory:
 
 ```bash
 python3 build_python_package.py --recursive sensor_msgs
@@ -31,30 +44,12 @@ python3 build_python_package.py --recursive sensor_msgs
 This will:
 
 1. Analyze the dependency tree of `sensor_msgs`
-2. Identify all ROS Python packages it depends on
+2. Identify all ROS packages it depends on
 3. Build each dependency in the correct order
 4. Finally build the target package
 5. Skip packages that already have wheels built
 
-### Command Line Options
-
-- `--recursive, -r`: Build all ROS Python dependencies recursively
-- `--ros-distro`: Specify ROS distribution (default: jazzy)
-- `--output-dir`: Output directory for wheels (default: dist)
-- `--verbose, -v`: Enable verbose output
-
-### Examples
-
-```bash
-# Build with all dependencies
-python3 build_python_package.py --recursive --verbose geometry_msgs
-
-# Build for different ROS distro
-python3 build_python_package.py --recursive --ros-distro humble sensor_msgs
-
-# Custom output directory
-python3 build_python_package.py --recursive --output-dir /tmp/wheels sensor_msgs
-```
+## Supported Packages
 
 ## How Recursive Building Works
 
@@ -70,14 +65,3 @@ python3 build_python_package.py --recursive --output-dir /tmp/wheels sensor_msgs
 - **ROS Runtime Packages**: Packages with shared libraries (`.so` files) - their libraries are bundled
 - **Python Dependencies**: Standard Python packages (added to `install_requires`)
 - **System Dependencies**: System packages (documented but not bundled)
-
-## Output
-
-The tool creates standard Python wheels (`.whl` files) with:
-
-- Proper package metadata
-- All Python modules and packages
-- Bundled shared libraries when needed
-- Correct dependency declarations
-
-These wheels can be installed with `pip install` and distributed via PyPI or private repositories.
