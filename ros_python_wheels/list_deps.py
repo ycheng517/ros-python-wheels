@@ -37,7 +37,7 @@ def resolve_rosdep_to_debian(package_name: str) -> str:
 def categorize_debian_package(debian_package_name: str, ros_distro: str) -> str:
     """
     Categorize a package by checking its name and file contents.
-    Returns: 'ros-python', 'ros-runtime', 'ros-other', 'python', or 'system'
+    Returns: 'ros-python', 'ros-runtime', 'ros-vendor', 'ros-linker', 'python', or 'system'
     """
     # First check if it's a ROS package
     if debian_package_name.startswith("ros-"):
@@ -68,12 +68,14 @@ def categorize_debian_package(debian_package_name: str, ros_distro: str) -> str:
                 return "ros-python"
             elif has_runtime_content:
                 return "ros-runtime"
+            elif debian_package_name.endswith("-vendor"):
+                return "ros-vendor"
             else:
-                return "ros-other"
+                return "ros-linker"
 
         except (subprocess.CalledProcessError, FileNotFoundError):
-            # If dpkg -L fails, default to 'ros-other'
-            return "ros-other"
+            # If dpkg -L fails, default to 'ros-linker'
+            return "ros-linker"
 
     # Check if it's a Python package
     elif debian_package_name.startswith("python3"):
@@ -88,7 +90,8 @@ def get_deps(
     package_name: str,
     ros_python_deps: set[str],
     ros_runtime_deps: set[str],
-    ros_other_deps: set[str],
+    ros_vendor_deps: set[str],
+    ros_linker_deps: set[str],
     python_deps: set[str],
     system_deps: set[str],
     processed: set[str],
@@ -106,7 +109,10 @@ def get_deps(
         package_name: The name of the ROS package to analyze.
         ros_python_deps: Set to collect ROS Python dependencies.
         ros_runtime_deps: Set to collect ROS runtime dependencies.
-        ros_other_deps: Set to collect other ROS dependencies.
+        ros_vendor_deps: Set to collect ROS vendor dependencies.
+        ros_linker_deps: Set to collect linker ROS dependencies.
+            Linkers are packages that don't have either Python or .so files, and only
+            has other dependencies.
         python_deps: Set to collect Python dependencies.
         system_deps: Set to collect system dependencies.
         processed: Set to keep track of processed packages to avoid cycles.
@@ -146,8 +152,10 @@ def get_deps(
             target_set = ros_python_deps
         elif category == "ros-runtime":
             target_set = ros_runtime_deps
-        elif category == "ros-other":
-            target_set = ros_other_deps
+        elif category == "ros-vendor":
+            target_set = ros_vendor_deps
+        elif category == "ros-linker":
+            target_set = ros_linker_deps
         elif category == "python":
             target_set = python_deps
         else:  # category == "system"
@@ -164,7 +172,8 @@ def get_deps(
                     dep_name,
                     ros_python_deps,
                     ros_runtime_deps,
-                    ros_other_deps,
+                    ros_vendor_deps,
+                    ros_linker_deps,
                     python_deps,
                     system_deps,
                     processed,
@@ -190,7 +199,8 @@ def parse_catkin_package(
     # Sets to keep track of different types of dependencies
     ros_python_deps: set[str] = set()
     ros_runtime_deps: set[str] = set()
-    ros_other_deps: set[str] = set()
+    ros_vendor_deps: set[str] = set()
+    ros_linker_deps: set[str] = set()
     python_deps: set[str] = set()
     system_deps: set[str] = set()
     processed: set[str] = set()
@@ -199,7 +209,8 @@ def parse_catkin_package(
         package_name,
         ros_python_deps,
         ros_runtime_deps,
-        ros_other_deps,
+        ros_vendor_deps,
+        ros_linker_deps,
         python_deps,
         system_deps,
         processed,
@@ -215,8 +226,12 @@ def parse_catkin_package(
     for dep in sorted(ros_runtime_deps):
         print(f"  - {dep}")
 
+    print("\n🛒 ROS Vendor Packages:")
+    for dep in sorted(ros_vendor_deps):
+        print(f"  - {dep}")
+
     print("\n📦 Other ROS Packages:")
-    for dep in sorted(ros_other_deps):
+    for dep in sorted(ros_linker_deps):
         print(f"  - {dep}")
 
     print("\n🐍 Python Dependencies:")

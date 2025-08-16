@@ -254,7 +254,8 @@ class ROSPythonPackageBuilder:
         """Gather Python and ROS Python dependencies using get_deps."""
         ros_python_deps: set[str] = set()
         ros_runtime_deps: set[str] = set()
-        ros_other_deps: set[str] = set()
+        ros_vendor_deps: set[str] = set()
+        ros_linker_deps: set[str] = set()
         python_deps: set[str] = set()
         system_deps: set[str] = set()
         processed: set[str] = set()
@@ -265,7 +266,8 @@ class ROSPythonPackageBuilder:
             ros_package,
             ros_python_deps,
             ros_runtime_deps,
-            ros_other_deps,
+            ros_vendor_deps,
+            ros_linker_deps,
             python_deps,
             system_deps,
             processed,
@@ -274,12 +276,31 @@ class ROSPythonPackageBuilder:
             recurse=False,
         )
 
+        # if there are vendor dependencies, get their underlying system dependencies
+        for vendor_dep in ros_vendor_deps:
+            print(
+                f"Converting vendor dependency {vendor_dep} to system dependencies..."
+            )
+            get_deps(
+                vendor_dep,
+                set(),
+                set(),
+                set(),
+                set(),
+                set(),
+                system_deps,
+                processed,
+                ros_distro=self.ros_distro,
+                level=0,
+                recurse=False,
+            )
+
         # Convert sets to sorted lists
         dependencies = {
             "python": sorted(python_deps),
             "ros_python": sorted(ros_python_deps),
             "ros_runtime": sorted(ros_runtime_deps),
-            "ros_other": sorted(ros_other_deps),
+            "ros_linker": sorted(ros_linker_deps),
             "system": sorted(system_deps),
         }
 
@@ -288,49 +309,10 @@ class ROSPythonPackageBuilder:
             dependencies[dep_type] = [dep for dep in dep_list if "cmake" not in dep]
 
         print("Found dependencies:")
-        print(
-            f"  Python: {len(dependencies['python'])} packages: {dependencies['python']}"
-        )
-        print(
-            f"  ROS Python: {len(dependencies['ros_python'])} packages: {dependencies['ros_python']}"
-        )
-        print(
-            f"  ROS Runtime: {len(dependencies['ros_runtime'])} packages: {dependencies['ros_runtime']}"
-        )
-        print(
-            f"  ROS Other: {len(dependencies['ros_other'])} packages: {dependencies['ros_other']}"
-        )
-        print(
-            f"  System: {len(dependencies['system'])} packages: {dependencies['system']}"
-        )
+        for dep_type, dep_list in dependencies.items():
+            print(f"  {dep_type}: {len(dep_list)} packages: {dep_list}")
 
         return dependencies
-
-    def get_all_ros_python_dependencies(self, ros_package: str) -> List[str]:
-        """Get all ROS Python dependencies recursively."""
-        ros_python_deps: set[str] = set()
-        ros_runtime_deps: set[str] = set()
-        ros_other_deps: set[str] = set()
-        python_deps: set[str] = set()
-        system_deps: set[str] = set()
-        processed: set[str] = set()
-
-        print(f"Gathering all ROS Python dependencies for {ros_package}...")
-
-        get_deps(
-            ros_package,
-            ros_python_deps,
-            ros_runtime_deps,
-            ros_other_deps,
-            python_deps,
-            system_deps,
-            processed,
-            ros_distro=self.ros_distro,
-            level=0,
-            recurse=True,  # Enable recursion to get all dependencies
-        )
-
-        return sorted(ros_python_deps)
 
     def wheel_exists(self, package_name: str, output_dir: str) -> bool:
         """Check if a wheel file already exists for the given package."""
@@ -399,13 +381,15 @@ class ROSPythonPackageBuilder:
             return order
 
         package_type = categorize_debian_package(debian_package, self.ros_distro)
-        if package_type in ("ros-python", "ros-runtime", "ros-other") and not (
-            "cmake" in ros_package or ros_package.endswith("vendor")
+        if (
+            package_type in ("ros-python", "ros-runtime", "ros-linker")
+            and "cmake" not in ros_package
         ):
             # Get dependencies for this package
             ros_python_deps: set[str] = set()
             ros_runtime_deps: set[str] = set()
-            ros_other_deps: set[str] = set()
+            ros_vendor_deps: set[str] = set()
+            ros_linker_deps: set[str] = set()
             python_deps: set[str] = set()
             system_deps: set[str] = set()
             processed: set[str] = set()
@@ -414,7 +398,8 @@ class ROSPythonPackageBuilder:
                 ros_package,
                 ros_python_deps,
                 ros_runtime_deps,
-                ros_other_deps,
+                ros_vendor_deps,
+                ros_linker_deps,
                 python_deps,
                 system_deps,
                 processed,
@@ -430,13 +415,13 @@ class ROSPythonPackageBuilder:
             for dep in ros_runtime_deps:
                 self.get_build_order(dep, visited, order)
 
-            for dep in ros_other_deps:
+            for dep in ros_linker_deps:
                 self.get_build_order(dep, visited, order)
 
             # Add current package to build order
             if package_type == "ros-python" and (ros_package, "python") not in order:
                 order.append((ros_package, "python"))
-            elif package_type == "ros-other" and (ros_package, "linker") not in order:
+            elif package_type == "ros-linker" and (ros_package, "linker") not in order:
                 order.append((ros_package, "linker"))
             elif (
                 package_type == "ros-runtime" and (ros_package, "runtime") not in order
@@ -492,6 +477,37 @@ class ROSPythonPackageBuilder:
             else:
                 print(f"    No shared libraries found for {dep}")
 
+        return shared_libs
+
+    def get_system_shared_libraries(self, system_deps: List[str]) -> List[str]:
+        """Get shared library files for system dependencies."""
+        shared_libs = []
+        print(
+            f"Looking for shared libraries for {len(system_deps)} system dependencies..."
+        )
+
+        for dep in system_deps:
+            print(f"  Processing system dependency: {dep}")
+
+            # Get files from the debian package
+            files = self.get_package_files(dep)
+            if not files:
+                print(f"    Could not get files for {dep}")
+                continue
+
+            # Find .so files in system library paths
+            for file_path in files:
+                # Check if file is in any of the system library paths
+                is_shared_lib = file_path.endswith(".so") or ".so." in file_path
+                if is_shared_lib and os.path.exists(file_path):
+                    shared_libs.append(file_path)
+
+        if shared_libs:
+            print(f"    Found {len(shared_libs)} shared libraries:")
+            for lib in shared_libs:
+                print(f"      {lib}")
+        else:
+            print(f"    No shared libraries found for {dep}")
         return shared_libs
 
     def copy_shared_libraries(
@@ -564,10 +580,23 @@ class ROSPythonPackageBuilder:
             )
 
             # Copy shared libraries to package lib directory
-            try:
-                self._copy_shared_libraries_to_package(temp_dir, ros_package, lib_files)
-            except Exception:
-                return False
+            self._copy_shared_libraries_to_package(temp_dir, ros_package, lib_files)
+
+            # Also copy system dependencies' shared libraries if present
+            if "system" in dependencies and dependencies["system"]:
+                print(
+                    f"Also including shared libraries from {len(dependencies['system'])} system dependencies..."
+                )
+                system_shared_libs = self.get_system_shared_libraries(
+                    dependencies["system"]
+                )
+
+                print(
+                    f"Found {len(system_shared_libs)} system shared libraries to include"
+                )
+                self._copy_shared_libraries_to_package(
+                    temp_dir, ros_package, system_shared_libs
+                )
 
             # Create setup.py for runtime library package
             setup_py_path = self.create_runtime_setup_py(
@@ -718,9 +747,9 @@ class ROSPythonPackageBuilder:
         # Add ROS other dependencies (linker packages) as pip installable packages with ros- prefix
         if (
             "dependencies" in package_info
-            and "ros_other" in package_info["dependencies"]
+            and "ros_linker" in package_info["dependencies"]
         ):
-            for dep in package_info["dependencies"]["ros_other"]:
+            for dep in package_info["dependencies"]["ros_linker"]:
                 # Convert ROS other package names to pip package names with ros- prefix
                 pip_name = f"ros-{dep.replace('_', '-')}"
                 if "vendor" not in pip_name:  # Skip vendor packages
@@ -931,6 +960,31 @@ setup(
         else:
             print(f"  Warning: Could not resolve debian package for {ros_package_name}")
 
+        # Also include shared libraries from system dependencies
+        if "dependencies" in package_info and "system" in package_info["dependencies"]:
+            system_deps = package_info["dependencies"]["system"]
+            if system_deps:
+                print(
+                    f"Including shared libraries from {len(system_deps)} system dependencies..."
+                )
+                system_shared_libs = self.get_system_shared_libraries(system_deps)
+
+                for lib_file in system_shared_libs:
+                    if os.path.exists(lib_file):
+                        file_name = os.path.basename(lib_file)
+                        dest_path = os.path.join(target_pkg_dir, file_name)
+                        try:
+                            # Avoid duplicate files
+                            if not os.path.exists(dest_path):
+                                shutil.copy2(lib_file, dest_path)
+                                print(
+                                    f"  Copied system lib {file_name} to ros_runtime_libs/"
+                                )
+                        except Exception as e:
+                            print(
+                                f"  Warning: Could not copy system lib {file_name}: {e}"
+                            )
+
         # Clean up empty dirs in original package (if they exist)
         src_pkg_dir = os.path.join(temp_dir, ros_package_name)
         if os.path.exists(src_pkg_dir):
@@ -999,6 +1053,33 @@ setup(
                             )
         else:
             print(f"  Warning: Could not resolve debian package for {ros_package_name}")
+
+        # Also include shared libraries from system dependencies
+        if "dependencies" in package_info and "system" in package_info["dependencies"]:
+            system_deps = package_info["dependencies"]["system"]
+            if system_deps:
+                print(
+                    f"Including shared libraries from {len(system_deps)} system dependencies..."
+                )
+                system_shared_libs = self.get_system_shared_libraries(system_deps)
+                for lib_file in system_shared_libs:
+                    if os.path.exists(lib_file):
+                        file_name = os.path.basename(lib_file)
+                        symlink_path = os.path.join(ros_runtime_libs_dir, file_name)
+                        try:
+                            # Avoid duplicate symlinks
+                            if not os.path.exists(symlink_path):
+                                rel_path = os.path.relpath(
+                                    lib_file, ros_runtime_libs_dir
+                                )
+                                os.symlink(rel_path, symlink_path)
+                                print(
+                                    f"  Created system lib symlink: {file_name} -> {rel_path}"
+                                )
+                        except Exception as e:
+                            print(
+                                f"  Warning: Could not create symlink for system lib {file_name}: {e}"
+                            )
 
         additional_setup_code = f'''# Find all shared libraries and C extension files
 package_data = {{}}
