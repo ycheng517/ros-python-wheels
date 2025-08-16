@@ -669,9 +669,16 @@ class ROSPythonPackageBuilder:
         except Exception as e:
             print(f"Warning: Could not parse package.xml: {e}")
 
-    def _prepare_install_requires(self, package_info: Dict[str, Any]) -> str:
-        """Prepare install_requires list from dependencies and format for setup.py."""
+    def _prepare_install_requires(
+        self, package_info: Dict[str, Any]
+    ) -> tuple[str, str]:
+        """Prepare install_requires list from dependencies and format for setup.py.
+
+        Returns:
+            tuple: (install_requires_str, extras_require_str)
+        """
         install_requires = []
+        extras_require = {}
 
         # Add Python dependencies
         if "dependencies" in package_info and "python" in package_info["dependencies"]:
@@ -719,14 +726,32 @@ class ROSPythonPackageBuilder:
                 if "vendor" not in pip_name:  # Skip vendor packages
                     install_requires.append(pip_name)
 
+        # Special case for ros-rclpy: add fastrtps extra
+        if package_info.get("name") == "ros-rclpy":
+            extras_require["fastrtps"] = ["ros-rmw-fastrtps-cpp"]
+
         # Format install_requires for the setup.py
         if install_requires:
             install_requires_str = ",\n        ".join(
                 f'"{dep}"' for dep in install_requires
             )
-            return f"[\n        {install_requires_str},\n    ]"
+            install_requires_formatted = f"[\n        {install_requires_str},\n    ]"
         else:
-            return "[]"
+            install_requires_formatted = "[]"
+
+        # Format extras_require for the setup.py
+        if extras_require:
+            extras_parts = []
+            for extra, deps in extras_require.items():
+                deps_str = ", ".join(f'"{dep}"' for dep in deps)
+                extras_parts.append(f'"{extra}": [{deps_str}]')
+            extras_formatted = (
+                "{\n        " + ",\n        ".join(extras_parts) + ",\n    }"
+            )
+        else:
+            extras_formatted = "{}"
+
+        return install_requires_formatted, extras_formatted
 
     def _run_wheel_build_command(self, temp_dir: str, output_dir: str) -> bool:
         """Run the pip wheel command to build the wheel."""
@@ -842,6 +867,7 @@ class ROSPythonPackageBuilder:
         package_data_spec: str = "package_data",
         additional_setup_code: str = "",
         has_ext_modules: bool = True,
+        extras_require_section: str = "{}",
     ) -> str:
         """Generate setup.py content with common structure."""
         setup_content = f'''#!/usr/bin/env python3
@@ -866,6 +892,7 @@ setup(
     package_data={package_data_spec},
     include_package_data=True,
     install_requires={install_requires_section},
+    extras_require={extras_require_section},
     classifiers=[
         {self._get_classifiers_string()},
     ],
@@ -915,7 +942,9 @@ setup(
                         pass  # Directory not empty or doesn't exist
 
         # Prepare install_requires list from dependencies
-        install_requires_section = self._prepare_install_requires(package_info)
+        install_requires_section, extras_require_section = (
+            self._prepare_install_requires(package_info)
+        )
 
         setup_py_content = self._generate_setup_py_content(
             package_info=package_info,
@@ -923,6 +952,7 @@ setup(
             packages_spec='find_packages(include=["ros_runtime_libs"])',
             package_data_spec='{"ros_runtime_libs": ["*.so", "*.so.*"]}',
             additional_setup_code="",
+            extras_require_section=extras_require_section,
         )
         return self._write_setup_py(temp_dir, setup_py_content)
 
@@ -934,7 +964,9 @@ setup(
     ) -> str:
         """Create a setup.py file for the package."""
         # Prepare install_requires list from dependencies
-        install_requires_section = self._prepare_install_requires(package_info)
+        install_requires_section, extras_require_section = (
+            self._prepare_install_requires(package_info)
+        )
 
         # Create ros_runtime_libs directory and symlink .so files
         ros_runtime_libs_dir = os.path.join(temp_dir, "ros_runtime_libs")
@@ -996,6 +1028,7 @@ if os.path.exists("ros_runtime_libs"):
             packages_spec="find_packages()",
             package_data_spec="package_data",
             additional_setup_code=additional_setup_code,
+            extras_require_section=extras_require_section,
         )
         return self._write_setup_py(temp_dir, setup_py_content)
 
