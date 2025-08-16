@@ -726,6 +726,17 @@ class ROSPythonPackageBuilder:
                 pip_name = f"ros-{dep.replace('_', '-')}"
                 install_requires.append(pip_name)
 
+        # Add ROS other dependencies (linker packages) as pip installable packages with ros- prefix
+        if (
+            "dependencies" in package_info
+            and "ros_other" in package_info["dependencies"]
+        ):
+            for dep in package_info["dependencies"]["ros_other"]:
+                # Convert ROS other package names to pip package names with ros- prefix
+                pip_name = f"ros-{dep.replace('_', '-')}"
+                if "vendor" not in pip_name:  # Skip vendor packages
+                    install_requires.append(pip_name)
+
         # Format install_requires for the setup.py
         if install_requires:
             install_requires_str = ",\n        ".join(
@@ -802,6 +813,17 @@ setup(
                 # Convert ROS runtime package names to pip package names with ros- prefix
                 pip_name = f"ros-{dep.replace('_', '-')}"
                 install_requires.append(pip_name)
+
+        # Add ROS other dependencies (linker packages) as pip installable packages with ros- prefix
+        if (
+            "dependencies" in package_info
+            and "ros_other" in package_info["dependencies"]
+        ):
+            for dep in package_info["dependencies"]["ros_other"]:
+                # Convert ROS other package names to pip package names with ros- prefix
+                pip_name = f"ros-{dep.replace('_', '-')}"
+                if "vendor" not in pip_name:  # Skip vendor packages
+                    install_requires.append(pip_name)
 
         # Format install_requires for the setup.py
         if install_requires:
