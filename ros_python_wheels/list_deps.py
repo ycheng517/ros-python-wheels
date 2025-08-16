@@ -132,6 +132,10 @@ def get_deps(
         if dep_name in processed:
             continue
 
+        if "cmake" in dep_name:
+            # Skip CMake dependencies
+            continue
+
         # Resolve to debian package name
         debian_name = resolve_rosdep_to_debian(dep_name)
 

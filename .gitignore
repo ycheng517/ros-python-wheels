@@ -1,5 +1,7 @@
 # Custom
 my_commands.txt
+.test_venv/
+log/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

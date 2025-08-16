@@ -112,6 +112,8 @@ class ROSPythonPackageBuilder:
             "description": "",
             "author": "",
             "author_email": "",
+            "license": "",
+            "url": "",
             "dependencies": [],
         }
 
@@ -196,13 +198,46 @@ class ROSPythonPackageBuilder:
                     # Clean up description text - replace newlines and extra whitespace
                     info["description"] = " ".join(desc_elem.text.strip().split())
 
-                # Get maintainer info
-                maintainer_elem = root.find("maintainer")
-                if maintainer_elem is not None:
-                    info["author"] = (
-                        maintainer_elem.text.strip() if maintainer_elem.text else ""
-                    )
-                    info["author_email"] = maintainer_elem.get("email", "")
+                # Get license info
+                license_elem = root.find("license")
+                if license_elem is not None and license_elem.text:
+                    info["license"] = license_elem.text.strip()
+                else:
+                    info["license"] = ""
+
+                # Get maintainer info (primary author)
+                maintainers = root.findall("maintainer")
+                authors = root.findall("author")
+
+                # Combine maintainers and authors, preferring maintainers
+                all_people = []
+                all_emails = []
+
+                # First add maintainers
+                for maintainer in maintainers:
+                    if maintainer.text:
+                        all_people.append(maintainer.text.strip())
+                    email = maintainer.get("email", "")
+                    if email:
+                        all_emails.append(email)
+
+                # Then add authors if we don't have maintainers
+                if not all_people:
+                    for author in authors:
+                        if author.text:
+                            all_people.append(author.text.strip())
+                        email = author.get("email", "")
+                        if email:
+                            all_emails.append(email)
+
+                # Set author and author_email
+                if all_people:
+                    info["author"] = ", ".join(all_people)
+                if all_emails:
+                    info["author_email"] = ", ".join(all_emails)
+
+                # Generate homepage URL (common pattern for ROS packages)
+                info["url"] = f"https://github.com/ros2/{package_basename}"
 
             except Exception as e:
                 print(f"Warning: Could not parse package.xml {package_xml}: {e}")
@@ -244,9 +279,7 @@ class ROSPythonPackageBuilder:
 
         # filter out cmake packages
         for dep_type, dep_list in dependencies.items():
-            dependencies[dep_type] = [
-                dep for dep in dep_list if not (dep.endswith("cmake"))
-            ]
+            dependencies[dep_type] = [dep for dep in dep_list if "cmake" not in dep]
 
         print("Found dependencies:")
         print(
@@ -381,7 +414,7 @@ class ROSPythonPackageBuilder:
 
         package_type = categorize_debian_package(debian_package, self.ros_distro)
         if package_type in ("ros-python", "ros-runtime", "ros-other") and not (
-            ros_package.endswith("cmake") or ros_package.endswith("vendor")
+            "cmake" in ros_package or ros_package.endswith("vendor")
         ):
             # Get dependencies for this package
             ros_python_deps: set[str] = set()
@@ -530,6 +563,8 @@ class ROSPythonPackageBuilder:
             "description": f"ROS {ros_package} runtime libraries",
             "author": "ROS Community",
             "author_email": "",
+            "license": "Apache License 2.0",
+            "url": f"https://github.com/ros2/{ros_package}",
             "dependencies": {
                 "python": [],
                 "ros_python": [],
@@ -615,9 +650,8 @@ class ROSPythonPackageBuilder:
                     "pip",
                     "wheel",
                     "--no-build-isolation",
+                    "--no-deps",  # Don't build dependencies - they should come from PyPI
                     "--wheel-dir",
-                    os.path.abspath(output_dir),
-                    "--find-links",
                     os.path.abspath(output_dir),
                     temp_dir,
                 ]
@@ -753,8 +787,11 @@ setup(
     name="{package_info["name"]}",
     version="{package_info["version"]}",
     description="""{package_info["description"].replace('"', '\\"')}""",
+    long_description="""{package_info["description"].replace('"', '\\"')}""",
     author="{package_info["author"]}",
     author_email="{package_info["author_email"]}",
+    url="{package_info.get("url", "")}",
+    license="{package_info.get("license", "Apache License 2.0")}",
     packages=find_packages(include=["ros_runtime_libs"]),
     package_data={{"ros_runtime_libs": ["*.so", "*.so.*"]}},
     include_package_data=True,
@@ -899,8 +936,11 @@ setup(
     name="{package_info["name"]}",
     version="{package_info["version"]}",
     description="""{package_info["description"].replace('"', '\\"')}""",
+    long_description="""{package_info["description"].replace('"', '\\"')}""",
     author="{package_info["author"]}",
     author_email="{package_info["author_email"]}",
+    url="{package_info.get("url", "")}",
+    license="{package_info.get("license", "Apache License 2.0")}",
     packages=find_packages(),
     package_data=package_data,
     include_package_data=True,
@@ -954,6 +994,8 @@ global-exclude __pycache__
             "description": f"ROS {ros_package} linker package with dependencies",
             "author": "ROS Community",
             "author_email": "",
+            "license": "Apache License 2.0",
+            "url": f"https://github.com/ros2/{ros_package}",
             "dependencies": {},
         }
 
@@ -1017,9 +1059,8 @@ global-exclude __pycache__
                     "pip",
                     "wheel",
                     "--no-build-isolation",
+                    "--no-deps",  # Don't build dependencies - they should come from PyPI
                     "--wheel-dir",
-                    os.path.abspath(output_dir),
-                    "--find-links",
                     os.path.abspath(output_dir),
                     temp_dir,
                 ]
@@ -1120,9 +1161,8 @@ global-exclude __pycache__
                     "pip",
                     "wheel",
                     "--no-build-isolation",
+                    "--no-deps",  # Don't build dependencies - they should come from PyPI
                     "--wheel-dir",
-                    os.path.abspath(output_dir),
-                    "--find-links",  # TODO (Yifei): may need to adjust this
                     os.path.abspath(output_dir),
                     temp_dir,
                 ]
