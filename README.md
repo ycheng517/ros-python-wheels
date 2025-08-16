@@ -7,7 +7,8 @@ A number of ROS Python wheels are uploaded to PyPi.
 
 - **Easy Project Integration**: To include The ROS Python Client (rclpy) in a Python project, simply add `ros-rclpy[fastrtps]` to your `pyproject.toml`
 - **Portable** Allows ROS to be run on different linux distros. The only requirement is x86_64.
-- **Lightweight** rclpy all of its dependencies only takes up less than 25MB.
+- **Lightweight** rclpy all of its dependencies takes up less than 25MB.
+  - A docker image with rclpy in Alpine Linux only takes XXX MB, compared with 875MB for ros:jazzy-ros-base
 
 ## Example: Install and Run the RCL Python Client
 
@@ -18,6 +19,8 @@ pip install ros-rclpy[fastrtps]
 # set LD_LIBRARY_PATH to the ros_runtime_libs directory of site-packages
 # where ros-rclpy is installed
 export LD_LIBRARY_PATH=$(pip show ros-rclpy | awk '/^Location:/ {print $2}')/ros_runtime_libs
+# Set the RMW to use
+export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 
 # Run ROS
 python -c "import rclpy; rclpy.init()"
