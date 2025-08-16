@@ -242,12 +242,28 @@ class ROSPythonPackageBuilder:
             "system": sorted(system_deps),
         }
 
+        # filter out cmake packages
+        for dep_type, dep_list in dependencies.items():
+            dependencies[dep_type] = [
+                dep for dep in dep_list if not (dep.endswith("cmake"))
+            ]
+
         print("Found dependencies:")
-        print(f"  Python: {len(dependencies['python'])} packages")
-        print(f"  ROS Python: {len(dependencies['ros_python'])} packages")
-        print(f"  ROS Runtime: {len(dependencies['ros_runtime'])} packages")
-        print(f"  ROS Other: {len(dependencies['ros_other'])} packages")
-        print(f"  System: {len(dependencies['system'])} packages")
+        print(
+            f"  Python: {len(dependencies['python'])} packages: {dependencies['python']}"
+        )
+        print(
+            f"  ROS Python: {len(dependencies['ros_python'])} packages: {dependencies['ros_python']}"
+        )
+        print(
+            f"  ROS Runtime: {len(dependencies['ros_runtime'])} packages: {dependencies['ros_runtime']}"
+        )
+        print(
+            f"  ROS Other: {len(dependencies['ros_other'])} packages: {dependencies['ros_other']}"
+        )
+        print(
+            f"  System: {len(dependencies['system'])} packages: {dependencies['system']}"
+        )
 
         return dependencies
 
@@ -283,7 +299,7 @@ class ROSPythonPackageBuilder:
             return False
 
         # Convert package name to expected wheel prefix (ros- prefix with underscores)
-        wheel_prefix = f"ros_{package_name.replace('-', '_')}"
+        wheel_prefix = f"ros_{package_name.replace('-', '_')}-"
 
         for filename in os.listdir(output_dir):
             if filename.startswith(wheel_prefix) and filename.endswith(".whl"):
@@ -298,7 +314,7 @@ class ROSPythonPackageBuilder:
             return False
 
         # Convert package name to expected runtime wheel prefix
-        wheel_prefix = f"ros_{package_name.replace('-', '_')}_runtime"
+        wheel_prefix = f"ros_{package_name.replace('-', '_')}-"
 
         for filename in os.listdir(output_dir):
             if filename.startswith(wheel_prefix) and filename.endswith(".whl"):
@@ -313,7 +329,7 @@ class ROSPythonPackageBuilder:
             return False
 
         # Convert package name to expected wheel prefix (ros- prefix with underscores)
-        wheel_prefix = f"ros_{package_name.replace('-', '_')}"
+        wheel_prefix = f"ros_{package_name.replace('-', '_')}-"
 
         for filename in os.listdir(output_dir):
             if filename.startswith(wheel_prefix) and filename.endswith(".whl"):
@@ -509,7 +525,7 @@ class ROSPythonPackageBuilder:
 
         # Step 3: Create package info for runtime library
         package_info = {
-            "name": f"ros-{ros_package.replace('_', '-')}-runtime",
+            "name": f"ros-{ros_package.replace('_', '-')}",
             "version": "0.0.0",
             "description": f"ROS {ros_package} runtime libraries",
             "author": "ROS Community",
@@ -522,6 +538,10 @@ class ROSPythonPackageBuilder:
                 "system": [],
             },
         }
+
+        # Step 3.5: Gather dependencies for runtime library
+        dependencies = self.gather_dependencies(ros_package)
+        package_info["dependencies"] = dependencies
 
         # Try to get version from package.xml if available
         try:
@@ -549,7 +569,7 @@ class ROSPythonPackageBuilder:
             print(f"Using temporary directory: {temp_dir}")
 
             # Create package directory structure
-            package_name = f"ros_{ros_package.replace('-', '_')}_runtime"
+            package_name = f"ros_{ros_package.replace('-', '_')}"
             package_dest = os.path.join(temp_dir, package_name)
             os.makedirs(package_dest, exist_ok=True)
 
@@ -576,7 +596,7 @@ class ROSPythonPackageBuilder:
 
             # Create setup.py for runtime library package
             setup_py_path = self.create_runtime_setup_py(
-                temp_dir, package_info, package_name
+                temp_dir, package_info, ros_package
             )
             print(f"Created setup.py at: {setup_py_path}")
 
@@ -630,52 +650,43 @@ class ROSPythonPackageBuilder:
             f'"{classifier}"' for classifier in self.setup_classifiers
         )
 
-    def create_runtime_setup_py(self, temp_dir, package_info, package_name):
+    def create_runtime_setup_py(self, temp_dir, package_info, ros_package_name):
         target_pkg_dir = os.path.join(temp_dir, "ros_runtime_libs")
         os.makedirs(target_pkg_dir, exist_ok=True)
 
         # Make ros_runtime_libs a proper package
         open(os.path.join(target_pkg_dir, "__init__.py"), "a").close()
 
-        # Move .so files into ros_runtime_libs/
-        src_pkg_dir = os.path.join(temp_dir, package_name)
-        for root, _, files in os.walk(src_pkg_dir):
-            for f in files:
-                if f.endswith((".so", ".so.*")) or ".so." in f:
-                    shutil.move(os.path.join(root, f), target_pkg_dir)
+        # Get .so files from debian package and copy them into ros_runtime_libs/
+        # Get the debian package name for this ROS package
+        debian_package = self.resolve_debian_package(ros_package_name)
+        if debian_package:
+            # Get all files from the debian package
+            debian_files = self.get_package_files(debian_package)
 
-        # Clean up empty dirs in original package
-        for root, dirs, files in os.walk(src_pkg_dir, topdown=False):
-            if not files and not dirs:
-                os.rmdir(root)
+            for file_path in debian_files:
+                if file_path.endswith((".so", ".so.*")) or ".so." in file_path:
+                    if os.path.exists(file_path):
+                        file_name = os.path.basename(file_path)
+                        dest_path = os.path.join(target_pkg_dir, file_name)
+                        try:
+                            # Copy the .so file to ros_runtime_libs directory
+                            shutil.copy2(file_path, dest_path)
+                            print(f"  Copied {file_name} to ros_runtime_libs/")
+                        except Exception as e:
+                            print(f"  Warning: Could not copy {file_name}: {e}")
+        else:
+            print(f"  Warning: Could not resolve debian package for {ros_package_name}")
 
-        setup_py_content = f'''#!/usr/bin/env python3
-from setuptools import setup, find_packages
-
-setup(
-    name="{package_info["name"]}",
-    version="{package_info["version"]}",
-    description="""{package_info["description"].replace('"', '\\"')}""",
-    author="{package_info["author"]}",
-    author_email="{package_info["author_email"]}",
-    packages=find_packages(include=["ros_runtime_libs"]),
-    package_data={{"ros_runtime_libs": ["*.so", "*.so.*"]}},
-    include_package_data=True,
-    install_requires=[],
-    classifiers=[
-        {self._get_classifiers_string()},
-    ],
-    python_requires=">=3.8",
-    zip_safe=False,
-    has_ext_modules=lambda: True,
-)
-'''
-        return self._write_setup_py(temp_dir, setup_py_content)
-
-    def create_setup_py(
-        self, temp_dir: str, package_info: Dict[str, Any], package_name: str
-    ) -> str:
-        """Create a setup.py file for the package."""
+        # Clean up empty dirs in original package (if they exist)
+        src_pkg_dir = os.path.join(temp_dir, ros_package_name)
+        if os.path.exists(src_pkg_dir):
+            for root, dirs, files in os.walk(src_pkg_dir, topdown=False):
+                if not files and not dirs:
+                    try:
+                        os.rmdir(root)
+                    except OSError:
+                        pass  # Directory not empty or doesn't exist
 
         # Prepare install_requires list from dependencies
         install_requires = []
@@ -711,8 +722,8 @@ setup(
             and "ros_runtime" in package_info["dependencies"]
         ):
             for dep in package_info["dependencies"]["ros_runtime"]:
-                # Convert ROS runtime package names to pip package names with ros- prefix and -runtime suffix
-                pip_name = f"ros-{dep.replace('_', '-')}-runtime"
+                # Convert ROS runtime package names to pip package names with ros- prefix
+                pip_name = f"ros-{dep.replace('_', '-')}"
                 install_requires.append(pip_name)
 
         # Format install_requires for the setup.py
@@ -725,6 +736,115 @@ setup(
             install_requires_section = "[]"
 
         setup_py_content = f'''#!/usr/bin/env python3
+from setuptools import setup, find_packages
+
+setup(
+    name="{package_info["name"]}",
+    version="{package_info["version"]}",
+    description="""{package_info["description"].replace('"', '\\"')}""",
+    author="{package_info["author"]}",
+    author_email="{package_info["author_email"]}",
+    packages=find_packages(include=["ros_runtime_libs"]),
+    package_data={{"ros_runtime_libs": ["*.so", "*.so.*"]}},
+    include_package_data=True,
+    install_requires={install_requires_section},
+    classifiers=[
+        {self._get_classifiers_string()},
+    ],
+    python_requires=">=3.8",
+    zip_safe=False,
+    has_ext_modules=lambda: True,
+)
+'''
+        return self._write_setup_py(temp_dir, setup_py_content)
+
+    def create_setup_py(
+        self,
+        temp_dir: str,
+        package_info: Dict[str, Any],
+        ros_package_name: str,
+    ) -> str:
+        """Create a setup.py file for the package."""
+        # Prepare install_requires list from dependencies
+        install_requires = []
+
+        # Add Python dependencies
+        if "dependencies" in package_info and "python" in package_info["dependencies"]:
+            for dep in package_info["dependencies"]["python"]:
+                # Convert debian package names to pip package names where possible
+                if dep.startswith("python3-"):
+                    pip_name = dep[8:].replace(
+                        "-", "_"
+                    )  # Remove python3- prefix and convert dashes
+                    # special case for pyyaml
+                    if pip_name == "yaml":
+                        pip_name = "pyyaml"
+                    install_requires.append(pip_name)
+                else:
+                    install_requires.append(dep)
+
+        # Add ROS Python dependencies as pip installable packages with ros- prefix
+        if (
+            "dependencies" in package_info
+            and "ros_python" in package_info["dependencies"]
+        ):
+            for dep in package_info["dependencies"]["ros_python"]:
+                # Convert ROS package names to pip package names with ros- prefix
+                pip_name = f"ros-{dep.replace('_', '-')}"
+                install_requires.append(pip_name)
+
+        # Add ROS runtime dependencies as pip installable runtime packages with ros- prefix
+        if (
+            "dependencies" in package_info
+            and "ros_runtime" in package_info["dependencies"]
+        ):
+            for dep in package_info["dependencies"]["ros_runtime"]:
+                # Convert ROS runtime package names to pip package names with ros- prefix
+                pip_name = f"ros-{dep.replace('_', '-')}"
+                install_requires.append(pip_name)
+
+        # Format install_requires for the setup.py
+        if install_requires:
+            install_requires_str = ",\n        ".join(
+                f'"{dep}"' for dep in install_requires
+            )
+            install_requires_section = f"[\n        {install_requires_str},\n    ]"
+        else:
+            install_requires_section = "[]"
+
+        # Create ros_runtime_libs directory and symlink .so files
+        ros_runtime_libs_dir = os.path.join(temp_dir, "ros_runtime_libs")
+        os.makedirs(ros_runtime_libs_dir, exist_ok=True)
+
+        # Make ros_runtime_libs a proper package
+        with open(os.path.join(ros_runtime_libs_dir, "__init__.py"), "w") as f:
+            f.write('"""ROS runtime libraries symlinks."""\n')
+
+        # Find .so files from debian package and create symlinks in ros_runtime_libs/
+        # Get the debian package name for this ROS package
+        debian_package = self.resolve_debian_package(ros_package_name)
+        if debian_package:
+            # Get all files from the debian package
+            debian_files = self.get_package_files(debian_package)
+
+            for file_path in debian_files:
+                if file_path.endswith(".so") or ".so." in file_path:
+                    if os.path.exists(file_path):
+                        file_name = os.path.basename(file_path)
+                        symlink_path = os.path.join(ros_runtime_libs_dir, file_name)
+                        try:
+                            # Create relative symlink to preserve package structure
+                            rel_path = os.path.relpath(file_path, ros_runtime_libs_dir)
+                            os.symlink(rel_path, symlink_path)
+                            print(f"  Created symlink: {file_name} -> {rel_path}")
+                        except Exception as e:
+                            print(
+                                f"  Warning: Could not create symlink for {file_name}: {e}"
+                            )
+        else:
+            print(f"  Warning: Could not resolve debian package for {ros_package_name}")
+
+        setup_py_content = f'''#!/usr/bin/env python3
 
 from setuptools import setup, find_packages
 from setuptools.extension import Extension
@@ -735,14 +855,23 @@ import os
 package_data = {{}}
 ext_modules = []
 
-# Include all .so files, .c files, and other binary extensions
-for root, dirs, files in os.walk("{package_name}"):
+# Include all .so files, .c files, and other binary extensions for the main package
+for root, dirs, files in os.walk("{ros_package_name}"):
     for file in files:
         if file.endswith(('.so', '.c', '.pyx', '.pxd')):
-            rel_path = os.path.relpath(os.path.join(root, file), "{package_name}")
-            if "{package_name}" not in package_data:
-                package_data["{package_name}"] = []
-            package_data["{package_name}"].append(rel_path)
+            rel_path = os.path.relpath(os.path.join(root, file), "{ros_package_name}")
+            if "{ros_package_name}" not in package_data:
+                package_data["{ros_package_name}"] = []
+            package_data["{ros_package_name}"].append(rel_path)
+
+# Include symlinked .so files in ros_runtime_libs
+ros_runtime_libs_files = []
+if os.path.exists("ros_runtime_libs"):
+    for file in os.listdir("ros_runtime_libs"):
+        if file.endswith((".so", ".so.*")) or ".so." in file:
+            ros_runtime_libs_files.append(file)
+    if ros_runtime_libs_files:
+        package_data["ros_runtime_libs"] = ros_runtime_libs_files
 
 setup(
     name="{package_info["name"]}",
@@ -774,6 +903,7 @@ setup(
         """Create a MANIFEST.in file to include all package files."""
         manifest_content = f"""# Include all files in the package
 recursive-include {package_name} *
+recursive-include ros_runtime_libs *
 global-exclude *.pyc
 global-exclude __pycache__
 """
@@ -1036,7 +1166,7 @@ global-exclude __pycache__
                     print(
                         f"\n✅ Runtime wheel for {pkg} already exists, skipping build"
                     )
-                    built_packages.add(f"{pkg}-runtime")
+                    built_packages.add(pkg)
                     continue
 
                 print(
@@ -1045,7 +1175,7 @@ global-exclude __pycache__
                 success = self.build_runtime_library_wheel(pkg, output_dir)
 
                 if success:
-                    built_packages.add(f"{pkg}-runtime")
+                    built_packages.add(pkg)
                     print(f"✅ Successfully built runtime wheel for {pkg}")
                 else:
                     print(f"❌ Failed to build runtime wheel for {pkg}")

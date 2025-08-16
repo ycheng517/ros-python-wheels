@@ -127,10 +127,20 @@ def get_deps(
     pkg = parse_package(package_path)
 
     # Combine build and exec dependencies
-    all_deps = list(pkg.exec_depends)
+    all_deps = list(set(pkg.exec_depends) | set(pkg.build_export_depends))
 
-    if package_name == "rosidl_core_runtime":
-        all_deps.append(ManuallyAddedDep("rosidl_parser"))
+    # if package_name == "rosidl_core_runtime":
+    #     all_deps.append(ManuallyAddedDep("rosidl_parser"))
+    #     all_deps.append(ManuallyAddedDep("rosidl_typesupport_c"))
+    #     all_deps.append(ManuallyAddedDep("rosidl_typesupport_cpp"))
+    #     all_deps.append(ManuallyAddedDep("rosidl_typesupport_fastrtps_c"))
+    #     all_deps.append(ManuallyAddedDep("rosidl_typesupport_fastrtps_cpp"))
+    #     all_deps.append(ManuallyAddedDep("rosidl_typesupport_introspection_c"))
+    #     all_deps.append(ManuallyAddedDep("rosidl_typesupport_introspection_cpp"))
+    # elif package_name == "rmw":
+    #     all_deps.append(ManuallyAddedDep("rosidl_dynamic_typesupport"))
+    # elif package_name == "rmw_fastrtps_cpp":
+    #     all_deps.append(ManuallyAddedDep("rmw_dds_common"))
 
     for dep in all_deps:
         dep_name = dep.name
