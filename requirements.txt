@@ -1,1 +1,3 @@
 catkin_pkg
+fire
+pyelftools

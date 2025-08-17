@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Script to convert ROS Python packages into Python wheels.
+Script to Build Python Package Artifacts.
 
 This script takes a ROS package name, resolves its debian package using rosdep,
 extracts the Python package from /opt/ros/<ROS_DISTRO>/lib/python3.12/site-packages/,
-and creates a wheel file.
+and creates the necessary artifacts.
 """
 
 import argparse
@@ -12,14 +12,13 @@ import os
 import shutil
 import subprocess
 import sys
-import tempfile
 from typing import Optional, List, Dict, Any
 
 from ros_python_wheels.list_deps import get_deps, categorize_debian_package
 
 
 class ROSPythonPackageBuilder:
-    def __init__(self, ros_distro: str = "jazzy"):
+    def __init__(self, ros_distro: str = "jazzy", output_dir: str = "dist"):
         self.ros_distro = ros_distro
         self.python_version = "3.12"  # Default for ROS Jazzy
         self.ros_python_path = (
@@ -36,6 +35,22 @@ class ROSPythonPackageBuilder:
             "Topic :: Scientific/Engineering :: Artificial Intelligence",
             "Topic :: Software Development :: Libraries :: Python Modules",
         ]
+        self.output_dir = output_dir
+
+    def _create_build_directory(self, ros_package: str, build_type: str = "") -> str:
+        """Create and return a build directory path for the package."""
+        if build_type:
+            build_dir = os.path.join(self.output_dir, f"{ros_package}_{build_type}")
+        else:
+            build_dir = os.path.join(self.output_dir, ros_package)
+
+        # Remove existing build directory if it exists
+        if os.path.exists(build_dir):
+            shutil.rmtree(build_dir)
+
+        # Create the build directory
+        os.makedirs(build_dir, exist_ok=True)
+        return os.path.abspath(build_dir)
 
     def resolve_debian_package(self, ros_package: str) -> Optional[str]:
         """Use rosdep to resolve ROS package name to debian package name."""
@@ -314,33 +329,6 @@ class ROSPythonPackageBuilder:
 
         return dependencies
 
-    def wheel_exists(self, package_name: str, output_dir: str) -> bool:
-        """Check if a wheel file already exists for the given package."""
-        return self._wheel_exists_with_prefix(package_name, output_dir)
-
-    def runtime_wheel_exists(self, package_name: str, output_dir: str) -> bool:
-        """Check if a runtime wheel file already exists for the given package."""
-        return self._wheel_exists_with_prefix(package_name, output_dir, "runtime")
-
-    def linker_wheel_exists(self, package_name: str, output_dir: str) -> bool:
-        """Check if a linker wheel file already exists for the given package."""
-        # For linker wheels, we want to exclude runtime wheels
-        if not os.path.exists(output_dir):
-            return False
-
-        wheel_prefix = f"ros_{package_name.replace('-', '_')}-"
-
-        for filename in os.listdir(output_dir):
-            if filename.startswith(wheel_prefix) and filename.endswith(".whl"):
-                # Make sure it's not a runtime wheel
-                if not filename.startswith(
-                    f"ros_{package_name.replace('-', '_')}_runtime"
-                ):
-                    print(f"Found existing linker wheel for {package_name}: {filename}")
-                    return True
-
-        return False
-
     def is_ros_python_package(self, ros_package: str) -> bool:
         """Check if it's a ROS python package (but not a system python package)."""
         if ros_package.startswith("python3-"):
@@ -479,67 +467,9 @@ class ROSPythonPackageBuilder:
 
         return shared_libs
 
-    def get_system_shared_libraries(self, system_deps: List[str]) -> List[str]:
-        """Get shared library files for system dependencies."""
-        shared_libs = []
-        print(
-            f"Looking for shared libraries for {len(system_deps)} system dependencies..."
-        )
-
-        for dep in system_deps:
-            print(f"  Processing system dependency: {dep}")
-
-            # Get files from the debian package
-            files = self.get_package_files(dep)
-            if not files:
-                print(f"    Could not get files for {dep}")
-                continue
-
-            # Find .so files in system library paths
-            for file_path in files:
-                # Check if file is in any of the system library paths
-                is_shared_lib = file_path.endswith(".so") or ".so." in file_path
-                if is_shared_lib and os.path.exists(file_path):
-                    shared_libs.append(file_path)
-
-        if shared_libs:
-            print(f"    Found {len(shared_libs)} shared libraries:")
-            for lib in shared_libs:
-                print(f"      {lib}")
-        else:
-            print(f"    No shared libraries found for {dep}")
-        return shared_libs
-
-    def copy_shared_libraries(
-        self, temp_dir: str, package_name: str, shared_libs: Dict[str, List[str]]
-    ) -> None:
-        """Copy shared libraries to the package directory."""
-        if not shared_libs:
-            return
-
-        package_dir = os.path.join(temp_dir, package_name)
-        libs_dir = os.path.join(package_dir, "lib")
-
-        print(f"Copying shared libraries to {libs_dir}...")
-        os.makedirs(libs_dir, exist_ok=True)
-
-        for dep, lib_files in shared_libs.items():
-            print(f"  Copying libraries for {dep}:")
-            for lib_file in lib_files:
-                if os.path.exists(lib_file):
-                    lib_name = os.path.basename(lib_file)
-                    dest_path = os.path.join(libs_dir, lib_name)
-                    try:
-                        shutil.copy2(lib_file, dest_path)
-                        print(f"    Copied {lib_name}")
-                    except Exception as e:
-                        print(f"    Error copying {lib_file}: {e}")
-
-    def build_runtime_library_wheel(
-        self, ros_package: str, output_dir: str = "dist"
-    ) -> bool:
-        """Build a Python wheel for a ROS runtime library package containing only shared libraries."""
-        print(f"Building runtime library wheel for ROS package: {ros_package}")
+    def build_runtime_library_artifacts(self, ros_package: str) -> bool:
+        """Build artifacts for a ROS runtime library package containing only shared libraries."""
+        print(f"Building runtime library artifacts for ROS package: {ros_package}")
 
         # Step 1: Resolve debian package name
         debian_package = self.resolve_debian_package(ros_package)
@@ -570,55 +500,34 @@ class ROSPythonPackageBuilder:
         # Try to get version and description from package.xml if available
         self._parse_package_xml(ros_package, package_info, "runtime libraries")
 
-        # Step 4: Create temporary build directory
-        with tempfile.TemporaryDirectory(delete=False) as temp_dir:
-            print(f"Using temporary directory: {temp_dir}")
+        # Step 4: Create build directory
+        build_dir = self._create_build_directory(ros_package, "runtime")
+        print(f"Using build directory: {build_dir}")
 
-            # Create package directory structure
-            self._create_temp_package_directory(
-                temp_dir, ros_package, f"ROS {ros_package} runtime libraries package."
-            )
+        # Create package directory structure
+        self._create_temp_package_directory(
+            build_dir, ros_package, f"ROS {ros_package} runtime libraries package."
+        )
 
-            # Copy shared libraries to package lib directory
-            self._copy_shared_libraries_to_package(temp_dir, ros_package, lib_files)
+        # Copy shared libraries to package lib directory
+        self._copy_shared_libraries_to_package(build_dir, ros_package, lib_files)
 
-            # Also copy system dependencies' shared libraries if present
-            if "system" in dependencies and dependencies["system"]:
-                print(
-                    f"Also including shared libraries from {len(dependencies['system'])} system dependencies..."
-                )
-                system_shared_libs = self.get_system_shared_libraries(
-                    dependencies["system"]
-                )
+        # Create setup.py for runtime library package
+        setup_py_path = self.create_runtime_setup_py(
+            build_dir, package_info, ros_package
+        )
+        print(f"Created setup.py at: {setup_py_path}")
 
-                print(
-                    f"Found {len(system_shared_libs)} system shared libraries to include"
-                )
-                self._copy_shared_libraries_to_package(
-                    temp_dir, ros_package, system_shared_libs
-                )
+        # Create MANIFEST.in
+        manifest_path = self.create_manifest_in(
+            build_dir, f"ros_{ros_package.replace('-', '_')}"
+        )
+        print(f"Created MANIFEST.in at: {manifest_path}")
+        return True
 
-            # Create setup.py for runtime library package
-            setup_py_path = self.create_runtime_setup_py(
-                temp_dir, package_info, ros_package
-            )
-            print(f"Created setup.py at: {setup_py_path}")
-
-            # Create MANIFEST.in
-            manifest_path = self.create_manifest_in(
-                temp_dir, f"ros_{ros_package.replace('-', '_')}"
-            )
-            print(f"Created MANIFEST.in at: {manifest_path}")
-
-            # Create output directory
-            os.makedirs(output_dir, exist_ok=True)
-
-            # Build the wheel
-            return self._run_wheel_build_command(temp_dir, output_dir)
-
-    def _write_setup_py(self, temp_dir: str, setup_py_content: str) -> str:
+    def _write_setup_py(self, build_dir: str, setup_py_content: str) -> str:
         """Helper method to write setup.py content to file."""
-        setup_py_path = os.path.join(temp_dir, "setup.py")
+        setup_py_path = os.path.join(build_dir, "setup.py")
         with open(setup_py_path, "w") as f:
             f.write(setup_py_content)
         return setup_py_path
@@ -782,35 +691,6 @@ class ROSPythonPackageBuilder:
 
         return install_requires_formatted, extras_formatted
 
-    def _run_wheel_build_command(self, temp_dir: str, output_dir: str) -> bool:
-        """Run the pip wheel command to build the wheel."""
-        try:
-            cmd = [
-                sys.executable,
-                "-m",
-                "pip",
-                "wheel",
-                "--no-build-isolation",
-                "--no-deps",  # Don't build dependencies - they should come from PyPI
-                "--wheel-dir",
-                os.path.abspath(output_dir),
-                temp_dir,
-            ]
-            print(f"Running: {' '.join(cmd)}")
-
-            result = subprocess.run(cmd, check=True, capture_output=True, text=True)
-            print("Wheel built successfully!")
-            print(f"Output: {result.stdout}")
-            if result.stderr:
-                print(f"Warnings: {result.stderr}")
-            return True
-
-        except subprocess.CalledProcessError as e:
-            print(f"Error building wheel: {e}")
-            print(f"stdout: {e.stdout}")
-            print(f"stderr: {e.stderr}")
-            return False
-
     def _create_default_package_info(
         self, ros_package: str, description_suffix: str = ""
     ) -> Dict[str, Any]:
@@ -831,11 +711,11 @@ class ROSPythonPackageBuilder:
         }
 
     def _create_temp_package_directory(
-        self, temp_dir: str, ros_package: str, init_docstring: str
+        self, build_dir: str, ros_package: str, init_docstring: str
     ) -> str:
         """Create package directory structure in temp directory."""
         package_name = f"ros_{ros_package.replace('-', '_')}"
-        package_dest = os.path.join(temp_dir, package_name)
+        package_dest = os.path.join(build_dir, package_name)
         os.makedirs(package_dest, exist_ok=True)
 
         # Create empty __init__.py to make it a Python package
@@ -846,11 +726,11 @@ class ROSPythonPackageBuilder:
         return package_dest
 
     def _copy_shared_libraries_to_package(
-        self, temp_dir: str, ros_package: str, lib_files: List[str]
+        self, build_dir: str, ros_package: str, lib_files: List[str]
     ) -> None:
         """Copy shared libraries to package lib directory."""
         package_name = f"ros_{ros_package.replace('-', '_')}"
-        package_dest = os.path.join(temp_dir, package_name)
+        package_dest = os.path.join(build_dir, package_name)
         libs_dir = os.path.join(package_dest, "lib")
         os.makedirs(libs_dir, exist_ok=True)
 
@@ -865,28 +745,6 @@ class ROSPythonPackageBuilder:
                 except Exception as e:
                     print(f"  Error copying {lib_file}: {e}")
                     raise
-
-    def _wheel_exists_with_prefix(
-        self, package_name: str, output_dir: str, wheel_type: str = ""
-    ) -> bool:
-        """Check if a wheel file exists with the given prefix and optional type."""
-        if not os.path.exists(output_dir):
-            return False
-
-        # Convert package name to expected wheel prefix
-        wheel_prefix = f"ros_{package_name.replace('-', '_')}"
-        if wheel_type:
-            wheel_prefix += f"_{wheel_type}"
-        wheel_prefix += "-"
-
-        for filename in os.listdir(output_dir):
-            if filename.startswith(wheel_prefix) and filename.endswith(".whl"):
-                print(
-                    f"Found existing {wheel_type or 'standard'} wheel for {package_name}: {filename}"
-                )
-                return True
-
-        return False
 
     def _generate_setup_py_content(
         self,
@@ -932,8 +790,8 @@ setup(
 '''
         return setup_content
 
-    def create_runtime_setup_py(self, temp_dir, package_info, ros_package_name):
-        target_pkg_dir = os.path.join(temp_dir, "ros_runtime_libs")
+    def create_runtime_setup_py(self, build_dir, package_info, ros_package_name):
+        target_pkg_dir = os.path.join(build_dir, "ros_runtime_libs")
         os.makedirs(target_pkg_dir, exist_ok=True)
 
         # Make ros_runtime_libs a proper package
@@ -960,33 +818,8 @@ setup(
         else:
             print(f"  Warning: Could not resolve debian package for {ros_package_name}")
 
-        # Also include shared libraries from system dependencies
-        if "dependencies" in package_info and "system" in package_info["dependencies"]:
-            system_deps = package_info["dependencies"]["system"]
-            if system_deps:
-                print(
-                    f"Including shared libraries from {len(system_deps)} system dependencies..."
-                )
-                system_shared_libs = self.get_system_shared_libraries(system_deps)
-
-                for lib_file in system_shared_libs:
-                    if os.path.exists(lib_file):
-                        file_name = os.path.basename(lib_file)
-                        dest_path = os.path.join(target_pkg_dir, file_name)
-                        try:
-                            # Avoid duplicate files
-                            if not os.path.exists(dest_path):
-                                shutil.copy2(lib_file, dest_path)
-                                print(
-                                    f"  Copied system lib {file_name} to ros_runtime_libs/"
-                                )
-                        except Exception as e:
-                            print(
-                                f"  Warning: Could not copy system lib {file_name}: {e}"
-                            )
-
         # Clean up empty dirs in original package (if they exist)
-        src_pkg_dir = os.path.join(temp_dir, ros_package_name)
+        src_pkg_dir = os.path.join(build_dir, ros_package_name)
         if os.path.exists(src_pkg_dir):
             for root, dirs, files in os.walk(src_pkg_dir, topdown=False):
                 if not files and not dirs:
@@ -1008,11 +841,11 @@ setup(
             additional_setup_code="",
             extras_require_section=extras_require_section,
         )
-        return self._write_setup_py(temp_dir, setup_py_content)
+        return self._write_setup_py(build_dir, setup_py_content)
 
     def create_setup_py(
         self,
-        temp_dir: str,
+        build_dir: str,
         package_info: Dict[str, Any],
         ros_package_name: str,
     ) -> str:
@@ -1023,7 +856,7 @@ setup(
         )
 
         # Create ros_runtime_libs directory and symlink .so files
-        ros_runtime_libs_dir = os.path.join(temp_dir, "ros_runtime_libs")
+        ros_runtime_libs_dir = os.path.join(build_dir, "ros_runtime_libs")
         os.makedirs(ros_runtime_libs_dir, exist_ok=True)
 
         # Make ros_runtime_libs a proper package
@@ -1053,33 +886,6 @@ setup(
                             )
         else:
             print(f"  Warning: Could not resolve debian package for {ros_package_name}")
-
-        # Also include shared libraries from system dependencies
-        if "dependencies" in package_info and "system" in package_info["dependencies"]:
-            system_deps = package_info["dependencies"]["system"]
-            if system_deps:
-                print(
-                    f"Including shared libraries from {len(system_deps)} system dependencies..."
-                )
-                system_shared_libs = self.get_system_shared_libraries(system_deps)
-                for lib_file in system_shared_libs:
-                    if os.path.exists(lib_file):
-                        file_name = os.path.basename(lib_file)
-                        symlink_path = os.path.join(ros_runtime_libs_dir, file_name)
-                        try:
-                            # Avoid duplicate symlinks
-                            if not os.path.exists(symlink_path):
-                                rel_path = os.path.relpath(
-                                    lib_file, ros_runtime_libs_dir
-                                )
-                                os.symlink(rel_path, symlink_path)
-                                print(
-                                    f"  Created system lib symlink: {file_name} -> {rel_path}"
-                                )
-                        except Exception as e:
-                            print(
-                                f"  Warning: Could not create symlink for system lib {file_name}: {e}"
-                            )
 
         additional_setup_code = f'''# Find all shared libraries and C extension files
 package_data = {{}}
@@ -1111,9 +917,9 @@ if os.path.exists("ros_runtime_libs"):
             additional_setup_code=additional_setup_code,
             extras_require_section=extras_require_section,
         )
-        return self._write_setup_py(temp_dir, setup_py_content)
+        return self._write_setup_py(build_dir, setup_py_content)
 
-    def create_manifest_in(self, temp_dir: str, package_name: str) -> str:
+    def create_manifest_in(self, build_dir: str, package_name: str) -> str:
         """Create a MANIFEST.in file to include all package files."""
         manifest_content = f"""# Include all files in the package
 recursive-include {package_name} *
@@ -1121,15 +927,15 @@ recursive-include ros_runtime_libs *
 global-exclude *.pyc
 global-exclude __pycache__
 """
-        manifest_path = os.path.join(temp_dir, "MANIFEST.in")
+        manifest_path = os.path.join(build_dir, "MANIFEST.in")
         with open(manifest_path, "w") as f:
             f.write(manifest_content)
 
         return manifest_path
 
-    def build_linker_wheel(self, ros_package: str, output_dir: str = "dist") -> bool:
-        """Build a Python wheel for a ROS other package as a linker package with dependencies only."""
-        print(f"Building linker wheel for ROS package: {ros_package}")
+    def build_linker_artifacts(self, ros_package: str) -> bool:
+        """Build artifacts for a ROS other package as a linker package with dependencies only."""
+        print(f"Building linker artifacts for ROS package: {ros_package}")
 
         # Step 1: Resolve debian package name
         debian_package = self.resolve_debian_package(ros_package)
@@ -1151,34 +957,29 @@ global-exclude __pycache__
         dependencies = self.gather_dependencies(ros_package)
         package_info["dependencies"] = dependencies
 
-        # Step 4: Create temporary build directory
-        with tempfile.TemporaryDirectory(delete=False) as temp_dir:
-            print(f"Using temporary directory: {temp_dir}")
+        # Step 4: Create build directory
+        build_dir = self._create_build_directory(ros_package, "linker")
+        print(f"Using build directory: {build_dir}")
 
-            # Create package directory structure
-            self._create_temp_package_directory(
-                temp_dir,
-                ros_package,
-                f"ROS {ros_package} linker package with dependencies only.",
-            )
+        # Create package directory structure
+        self._create_temp_package_directory(
+            build_dir,
+            ros_package,
+            f"ROS {ros_package} linker package with dependencies only.",
+        )
 
-            # Create setup.py for linker package
-            setup_py_path = self.create_setup_py(temp_dir, package_info, ros_package)
-            print(f"Created setup.py at: {setup_py_path}")
+        # Create setup.py for linker package
+        setup_py_path = self.create_setup_py(build_dir, package_info, ros_package)
+        print(f"Created setup.py at: {setup_py_path}")
 
-            # Create MANIFEST.in
-            manifest_path = self.create_manifest_in(temp_dir, ros_package)
-            print(f"Created MANIFEST.in at: {manifest_path}")
+        # Create MANIFEST.in
+        manifest_path = self.create_manifest_in(build_dir, ros_package)
+        print(f"Created MANIFEST.in at: {manifest_path}")
+        return True
 
-            # Create output directory
-            os.makedirs(output_dir, exist_ok=True)
-
-            # Build the wheel
-            return self._run_wheel_build_command(temp_dir, output_dir)
-
-    def build_wheel(self, ros_package: str, output_dir: str = "dist") -> bool:
-        """Build a Python wheel from a ROS package."""
-        print(f"Building wheel for ROS package: {ros_package}")
+    def build_artifacts(self, ros_package: str) -> bool:
+        """Build artifacts from a ROS package."""
+        print(f"Building artifacts for ROS package: {ros_package}")
 
         # Step 1: Resolve debian package name
         debian_package = self.resolve_debian_package(ros_package)
@@ -1225,40 +1026,31 @@ global-exclude __pycache__
         dependencies = self.gather_dependencies(ros_package)
         package_info["dependencies"] = dependencies
 
-        # Step 5: Create temporary build directory
-        with tempfile.TemporaryDirectory(delete=False) as temp_dir:
-            print(f"Using temporary directory: {temp_dir}")
+        # Step 5: Create build directory
+        build_dir = self._create_build_directory(ros_package, "python")
+        print(f"Using build directory: {build_dir}")
 
-            # Copy the Python package to temp directory
-            package_dest = os.path.join(temp_dir, ros_package)
-            try:
-                shutil.copytree(python_package_path, package_dest)
-                print(f"Copied package to: {package_dest}")
-            except Exception as e:
-                print(f"Error copying package: {e}")
-                return False
+        # Copy the Python package to temp directory
+        package_dest = os.path.join(build_dir, ros_package)
+        try:
+            shutil.copytree(python_package_path, package_dest)
+            print(f"Copied package to: {package_dest}")
+        except Exception as e:
+            print(f"Error copying package: {e}")
+            return False
 
-            # Create setup.py
-            setup_py_path = self.create_setup_py(temp_dir, package_info, ros_package)
-            print(f"Created setup.py at: {setup_py_path}")
+        # Create setup.py
+        setup_py_path = self.create_setup_py(build_dir, package_info, ros_package)
+        print(f"Created setup.py at: {setup_py_path}")
 
-            # Create MANIFEST.in
-            manifest_path = self.create_manifest_in(temp_dir, ros_package)
-            print(f"Created MANIFEST.in at: {manifest_path}")
+        # Create MANIFEST.in
+        manifest_path = self.create_manifest_in(build_dir, ros_package)
+        print(f"Created MANIFEST.in at: {manifest_path}")
+        return True
 
-            # Create output directory
-            os.makedirs(output_dir, exist_ok=True)
-
-            # Build the wheel
-            return self._run_wheel_build_command(temp_dir, output_dir)
-
-    def build_wheel_recursive(self, ros_package: str, output_dir: str = "dist") -> bool:
-        """Build Python wheels for a ROS package and all its dependencies (both Python and runtime)."""
+    def build_artifacts_recursive(self, ros_package: str) -> bool:
+        """Build artifacts for a ROS package and all its dependencies (both Python and runtime)."""
         print(f"🚀 Starting recursive build for ROS package: {ros_package}")
-        print(f"📁 Output directory: {output_dir}")
-
-        # Create output directory
-        os.makedirs(output_dir, exist_ok=True)
 
         # Determine build order for both Python packages and runtime libraries
         print("\n🔍 Determining build order...")
@@ -1293,36 +1085,22 @@ global-exclude __pycache__
 
         for i, (pkg, pkg_type) in enumerate(build_order, 1):
             if pkg_type == "runtime":
-                # Check if runtime wheel already exists
-                if self.runtime_wheel_exists(pkg, output_dir):
-                    print(
-                        f"\n✅ Runtime wheel for {pkg} already exists, skipping build"
-                    )
-                    built_packages.add(pkg)
-                    continue
-
                 print(
                     f"\n🔨 Building runtime libraries for {pkg} ({i}/{total_packages})..."
                 )
-                success = self.build_runtime_library_wheel(pkg, output_dir)
+                success = self.build_runtime_library_artifacts(pkg)
 
                 if success:
                     built_packages.add(pkg)
-                    print(f"✅ Successfully built runtime wheel for {pkg}")
+                    print(f"✅ Successfully built runtime artifacts for {pkg}")
                 else:
-                    print(f"❌ Failed to build runtime wheel for {pkg}")
+                    print(f"❌ Failed to build runtime artifacts for {pkg}")
                     print(f"💥 Recursive build failed at runtime package {pkg}")
                     return False
 
             elif pkg_type == "python":
-                # Check if wheel already exists
-                if self.wheel_exists(pkg, output_dir):
-                    print(f"\n✅ Wheel for {pkg} already exists, skipping build")
-                    built_packages.add(pkg)
-                    continue
-
                 print(f"\n🔨 Building Python package {pkg} ({i}/{total_packages})...")
-                success = self.build_wheel(pkg, output_dir)
+                success = self.build_artifacts(pkg)
 
                 if success:
                     built_packages.add(pkg)
@@ -1333,14 +1111,8 @@ global-exclude __pycache__
                     return False
 
             elif pkg_type == "linker":
-                # Check if linker wheel already exists
-                if self.linker_wheel_exists(pkg, output_dir):
-                    print(f"\n✅ Linker wheel for {pkg} already exists, skipping build")
-                    built_packages.add(f"{pkg}-linker")
-                    continue
-
                 print(f"\n🔨 Building linker package {pkg} ({i}/{total_packages})...")
-                success = self.build_linker_wheel(pkg, output_dir)
+                success = self.build_linker_artifacts(pkg)
 
                 if success:
                     built_packages.add(f"{pkg}-linker")
@@ -1356,9 +1128,7 @@ global-exclude __pycache__
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Convert ROS Python packages to Python wheels"
-    )
+    parser = argparse.ArgumentParser(description="Build Python Package Artifacts")
     parser.add_argument(
         "package", help="ROS package name (e.g., unique_identifier_msgs)"
     )
@@ -1367,8 +1137,8 @@ def main():
     )
     parser.add_argument(
         "--output-dir",
-        default="dist",
-        help="Output directory for wheels (default: dist)",
+        default="build",
+        help="Output directory for build artifacts (default: build)",
     )
     parser.add_argument(
         "--no-recurse",
@@ -1380,15 +1150,15 @@ def main():
     builder = ROSPythonPackageBuilder(ros_distro=args.ros_distro)
 
     if args.no_recurse:
-        success = builder.build_wheel(args.package, args.output_dir)
+        success = builder.build_artifacts(args.package)
     else:
-        success = builder.build_wheel_recursive(args.package, args.output_dir)
+        success = builder.build_artifacts_recursive(args.package)
 
     if success:
-        print(f"Successfully built wheel for {args.package}")
+        print(f"Successfully built artifacts for {args.package}")
         sys.exit(0)
     else:
-        print(f"Failed to build wheel for {args.package}")
+        print(f"Failed to build artifacts for {args.package}")
         sys.exit(1)
 
 
