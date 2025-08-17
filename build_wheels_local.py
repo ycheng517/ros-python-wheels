@@ -78,7 +78,26 @@ def build_wheel(build_dir: str, output_dir: str) -> bool:
         return False
 
 
-def main(build_dir: str):
+def build_wheels(build_dir: str, output_dir: str):
+    """For all subdirectories in build_dir, build wheels."""
+    build_path = Path(build_dir)
+    output_path = Path(output_dir)
+
+    if not build_path.exists():
+        raise FileNotFoundError(f"Build directory '{build_dir}' does not exist.")
+
+    if not output_path.exists():
+        output_path.mkdir(parents=True, exist_ok=True)
+
+    for subdir in build_path.iterdir():
+        if subdir.is_dir():
+            print(f"Building wheel for {subdir}")
+            success = build_wheel(str(subdir), str(output_path))
+            if not success:
+                raise RuntimeError(f"Failed to build wheel for {subdir}")
+
+
+def add_system_shared_libs(build_dir: str):
     build_path = Path(build_dir)
 
     # Step 1: Walk the build_dir and collect all .so and .so.* files
@@ -118,6 +137,23 @@ def main(build_dir: str):
 
             copy_dependency(lib_path, so_file, needed_lib)
             so_basenames.add(needed_lib)
+
+
+def main(build_dir: str, output_dir: str):
+    build_path = Path(build_dir)
+    output_path = Path(output_dir)
+
+    if not build_path.exists():
+        raise FileNotFoundError(f"Build directory '{build_dir}' does not exist.")
+
+    if not output_path.exists():
+        output_path.mkdir(parents=True, exist_ok=True)
+
+    # Step 1: Add system shared libraries
+    add_system_shared_libs(build_dir)
+
+    # Step 2: Build the wheels
+    build_wheels(build_dir, output_dir)
 
 
 if __name__ == "__main__":
