@@ -5,9 +5,10 @@ This project helps convert ROS Python packages into Python wheels that can be in
 ## Benefits
 
 - **Easy Project Integration**: To include The ROS Python Client (rclpy) in a Python project, simply add `ros-rclpy[fastrtps]` to your `pyproject.toml`
+  - Fully manage Python ROS libraries using modern Python tooling like uv, Poetry, and conda.
 - **Portable** Allows ROS to be run on different linux distros. The only requirement is x86_64.
-- **Lightweight** rclpy all of its dependencies takes up less than 25MB.
-  - A docker image with rclpy in Alpine Linux only takes XXX MB, compared with 875MB for ros:jazzy-ros-base
+- **Lightweight** rclpy all of its dependencies takes up less than 20MB.
+  - A docker image with rclpy based on `python:3.12` only takes XXX MB, compared with 875MB for `ros:jazzy-ros-base`
 
 ## Example: Install and Run the RCL Python Client
 
@@ -27,43 +28,28 @@ python -c "import rclpy; rclpy.init()"
 
 ## Building Wheels
 
+### Pre-requisites
+
+You need to have the ROS version that you'd like to build wheels for for installed.
+
 ### Basic Usage
 
-Build a single ROS package to the `dist/` directory:
+Install this package and activate the environment using your favorite Python
+package/environment manager, i.e.
 
 ```bash
-python3 build_python_package.py sensor_msgs
+uv sync
+source .venv/bin/activate
 ```
 
-### Recursive Building
-
-Build a ROS package and all its dependencies to the `dist/` directory:
+Build a ROS package and all of its dependencies to the `dist/` directory
 
 ```bash
-python3 build_python_package.py --recursive sensor_msgs
+python scripts/build.py test_msgs
 ```
 
-This will:
+Can build a list of ROS packages as well:
 
-1. Analyze the dependency tree of `sensor_msgs`
-2. Identify all ROS packages it depends on
-3. Build each dependency in the correct order
-4. Finally build the target package
-5. Skip packages that already have wheels built
-
-## Supported Packages
-
-## How Recursive Building Works
-
-1. **Dependency Analysis**: Uses `rosdep` and `catkin_pkg` to analyze the dependency tree
-2. **Filtering**: Only processes ROS packages that contain Python code
-3. **Build Order**: Builds dependencies before dependents
-4. **Caching**: Skips packages that already have wheels built
-5. **Error Handling**: Stops on first build failure to prevent corrupted dependency chains
-
-## Package Types Handled
-
-- **ROS Python Packages**: Packages with Python code in `/opt/ros/<distro>/lib/python*/site-packages/`
-- **ROS Runtime Packages**: Packages with shared libraries (`.so` files) - their libraries are bundled
-- **Python Dependencies**: Standard Python packages (added to `install_requires`)
-- **System Dependencies**: System packages (documented but not bundled)
+```bash
+python scripts/build.py test_msgs rmw_fastrtps_cpp,rclpy,test_msgs
+```

@@ -1,19 +1,8 @@
-#!/usr/bin/env python3
-"""
-Script to Build Python Package Artifacts.
-
-This script takes a ROS package name, resolves its debian package using rosdep,
-extracts the Python package from /opt/ros/<ROS_DISTRO>/lib/python3.12/site-packages/,
-and creates the necessary artifacts.
-"""
-
 import os
 import shutil
 import subprocess
 import sys
 from typing import Optional, List, Dict, Any
-
-import fire
 
 from ros_python_wheels.list_deps import get_deps, categorize_debian_package
 
@@ -1144,11 +1133,6 @@ def build_python_artifacts(
 
     if success:
         print(f"Successfully built artifacts for {package_name}")
-        sys.exit(0)
     else:
         print(f"Failed to build artifacts for {package_name}")
         sys.exit(1)
-
-
-if __name__ == "__main__":
-    fire.Fire(build_python_artifacts)

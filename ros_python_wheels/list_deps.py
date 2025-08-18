@@ -1,4 +1,4 @@
-import argparse
+import fire
 import os
 import subprocess
 from catkin_pkg.package import parse_package
@@ -183,7 +183,7 @@ def get_deps(
                 )
 
 
-def parse_catkin_package(
+def show_dependencies(
     package_name: str, recurse: bool = True, ros_distro: str = "jazzy"
 ):
     """
@@ -244,22 +244,4 @@ def parse_catkin_package(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Parse a Catkin package and categorize its dependencies"
-    )
-    parser.add_argument("package_name", help="The name of the Catkin package to parse")
-    parser.add_argument(
-        "--no-recurse",
-        action="store_true",
-        help="Disable recursive dependency resolution (only show direct dependencies)",
-    )
-    parser.add_argument(
-        "--ros-distro",
-        default="jazzy",
-        help="Specify the ROS distribution (default: jazzy)",
-    )
-    args = parser.parse_args()
-
-    parse_catkin_package(
-        args.package_name, recurse=not args.no_recurse, ros_distro=args.ros_distro
-    )
+    fire.Fire(show_dependencies)

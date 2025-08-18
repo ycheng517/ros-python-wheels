@@ -1,4 +1,3 @@
-import fire
 import os
 import shutil
 import sys
@@ -153,7 +152,7 @@ def build_wheel(build_dir: str, output_dir: str) -> bool:
         return False
 
 
-def build_wheels(build_dir: str, output_dir: str) -> None:
+def do_build_wheels(build_dir: str, output_dir: str) -> None:
     """For all subdirectories in build_dir, build wheels."""
     build_path = Path(build_dir)
     output_path = Path(output_dir)
@@ -215,7 +214,7 @@ def add_system_shared_libs(build_dir: str) -> None:
             # so_basenames.add(needed_lib)
 
 
-def main(build_dir: str = "build", output_dir: str = "dist") -> None:
+def build_wheels(build_dir: str = "build", output_dir: str = "dist") -> None:
     build_path = Path(build_dir)
     output_path = Path(output_dir)
 
@@ -225,12 +224,8 @@ def main(build_dir: str = "build", output_dir: str = "dist") -> None:
     if not output_path.exists():
         output_path.mkdir(parents=True, exist_ok=True)
 
-    # Step 1: Add system shared libraries
+    # Step 1: Add system shared libraries to the build directory
     add_system_shared_libs(build_dir)
 
     # Step 2: Build the wheels
-    build_wheels(build_dir, output_dir)
-
-
-if __name__ == "__main__":
-    fire.Fire(main)
+    do_build_wheels(build_dir, output_dir)
