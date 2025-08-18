@@ -1,7 +1,6 @@
 # ROS Python Wheels
 
 This project helps convert ROS Python packages into Python wheels that can be installed via pip.
-A number of ROS Python wheels are uploaded to PyPi.
 
 ## Benefits
 

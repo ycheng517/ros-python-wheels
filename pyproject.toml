@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ros-python-wheels"
+version = "0.1.0"
+description = "A tool to convert ROS packages into portable Python wheels"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "Yifei Cheng", email = "ycheng517+projects@gmail.com"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Archiving :: Packaging",
+    "Topic :: Utilities"
+]
+requires-python = ">=3.8"
+dependencies = [
+    "build",
+    "catkin_pkg",
+    "fire",
+    "pyelftools",
+    "twine",
+    "wheel",
+]
+
+[project.urls]
+Homepage = "https://github.com/ycheng517/ros-python-wheels"
+Repository = "https://github.com/ycheng517/ros-python-wheels"
+Issues = "https://github.com/ycheng517/ros-python-wheels/issues"
+Documentation = "https://github.com/ycheng517/ros-python-wheels/blob/main/README.md"
+
+[project.scripts]
+build-python-artifacts = "ros_python_wheels.build_python_artifacts:main"
+build-wheels-local = "ros_python_wheels.build_wheels_local:main"
+build-wheels-docker = "ros_python_wheels.build_wheels_docker:main"
+build-wheels-manylinux = "ros_python_wheels.build_wheels_manylinux:main"
+test-build-order = "ros_python_wheels.test_build_order:main"
+list-deps = "ros_python_wheels.list_deps:main"

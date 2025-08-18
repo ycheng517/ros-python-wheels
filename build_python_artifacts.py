@@ -7,20 +7,21 @@ extracts the Python package from /opt/ros/<ROS_DISTRO>/lib/python3.12/site-packa
 and creates the necessary artifacts.
 """
 
-import argparse
 import os
 import shutil
 import subprocess
 import sys
 from typing import Optional, List, Dict, Any
 
+import fire
+
 from ros_python_wheels.list_deps import get_deps, categorize_debian_package
 
 
 class ROSPythonPackageBuilder:
-    def __init__(self, ros_distro: str = "jazzy", output_dir: str = "dist"):
+    def __init__(self, ros_distro: str, output_dir: str):
         self.ros_distro = ros_distro
-        self.python_version = "3.12"  # Default for ROS Jazzy
+        self.python_version = self._get_system_python_version()
         self.ros_python_path = (
             f"/opt/ros/{ros_distro}/lib/python{self.python_version}/site-packages"
         )
@@ -31,11 +32,27 @@ class ROSPythonPackageBuilder:
             "Intended Audience :: Developers",
             "License :: OSI Approved :: Apache Software License",
             "Programming Language :: Python :: 3",
-            "Programming Language :: Python :: 3.12",
+            f"Programming Language :: Python :: {self.python_version}",
             "Topic :: Scientific/Engineering :: Artificial Intelligence",
             "Topic :: Software Development :: Libraries :: Python Modules",
         ]
         self.output_dir = output_dir
+
+    def _get_system_python_version(self) -> str:
+        """Get the system Python version from /usr/bin/python3."""
+        result = subprocess.run(
+            [
+                "/usr/bin/python3",
+                "-c",
+                "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        version = result.stdout.strip()
+        print(f"Detected system Python version: {version}")
+        return version
 
     def _create_build_directory(self, ros_package: str, build_type: str = "") -> str:
         """Create and return a build directory path for the package."""
@@ -509,9 +526,6 @@ class ROSPythonPackageBuilder:
             build_dir, ros_package, f"ROS {ros_package} runtime libraries package."
         )
 
-        # Copy shared libraries to package lib directory
-        self._copy_shared_libraries_to_package(build_dir, ros_package, lib_files)
-
         # Create setup.py for runtime library package
         setup_py_path = self.create_runtime_setup_py(
             build_dir, package_info, ros_package
@@ -725,27 +739,6 @@ class ROSPythonPackageBuilder:
 
         return package_dest
 
-    def _copy_shared_libraries_to_package(
-        self, build_dir: str, ros_package: str, lib_files: List[str]
-    ) -> None:
-        """Copy shared libraries to package lib directory."""
-        package_name = f"ros_{ros_package.replace('-', '_')}"
-        package_dest = os.path.join(build_dir, package_name)
-        libs_dir = os.path.join(package_dest, "lib")
-        os.makedirs(libs_dir, exist_ok=True)
-
-        print(f"Copying {len(lib_files)} shared libraries to {libs_dir}...")
-        for lib_file in lib_files:
-            if os.path.exists(lib_file):
-                lib_name = os.path.basename(lib_file)
-                dest_path = os.path.join(libs_dir, lib_name)
-                try:
-                    shutil.copy2(lib_file, dest_path)
-                    print(f"  Copied {lib_name}")
-                except Exception as e:
-                    print(f"  Error copying {lib_file}: {e}")
-                    raise
-
     def _generate_setup_py_content(
         self,
         package_info: Dict[str, Any],
@@ -790,7 +783,7 @@ setup(
 '''
         return setup_content
 
-    def create_runtime_setup_py(self, build_dir, package_info, ros_package_name):
+    def create_runtime_setup_py(self, build_dir, package_info, ros_package_name) -> str:
         target_pkg_dir = os.path.join(build_dir, "ros_runtime_libs")
         os.makedirs(target_pkg_dir, exist_ok=True)
 
@@ -1127,40 +1120,35 @@ global-exclude __pycache__
         return True
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Build Python Package Artifacts")
-    parser.add_argument(
-        "package", help="ROS package name (e.g., unique_identifier_msgs)"
-    )
-    parser.add_argument(
-        "--ros-distro", default="jazzy", help="ROS distribution (default: jazzy)"
-    )
-    parser.add_argument(
-        "--output-dir",
-        default="build",
-        help="Output directory for build artifacts (default: build)",
-    )
-    parser.add_argument(
-        "--no-recurse",
-        action="store_true",
-        help="Build only the target package without recursively building dependencies",
-    )
+def build_python_artifacts(
+    package_name: str,
+    ros_distro: str = "jazzy",
+    output_dir: str = "build",
+    no_recurse: bool = False,
+):
+    """Build Python artifacts from ROS packages. The artifacts can then be used to build
+    Python wheels.
 
-    args = parser.parse_args()
-    builder = ROSPythonPackageBuilder(ros_distro=args.ros_distro)
+    Args:
+        package_name (str): The name of the ROS package to build artifacts for.
+        ros_distro (str): The ROS distribution to target (default: "jazzy").
+        output_dir (str): The directory to output built artifacts (default: "build").
+        no_recurse (bool): If True, do not build dependencies recursively (default: False).
+    """
+    builder = ROSPythonPackageBuilder(ros_distro=ros_distro, output_dir=output_dir)
 
-    if args.no_recurse:
-        success = builder.build_artifacts(args.package)
+    if no_recurse:
+        success = builder.build_artifacts(package_name)
     else:
-        success = builder.build_artifacts_recursive(args.package)
+        success = builder.build_artifacts_recursive(package_name)
 
     if success:
-        print(f"Successfully built artifacts for {args.package}")
+        print(f"Successfully built artifacts for {package_name}")
         sys.exit(0)
     else:
-        print(f"Failed to build artifacts for {args.package}")
+        print(f"Failed to build artifacts for {package_name}")
         sys.exit(1)
 
 
 if __name__ == "__main__":
-    main()
+    fire.Fire(build_python_artifacts)
