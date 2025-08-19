@@ -3,6 +3,7 @@ import shutil
 import subprocess
 import sys
 from typing import Optional, List, Dict, Any
+import urllib.request
 
 from ros_python_wheels.list_deps import get_deps, categorize_debian_package
 
@@ -26,6 +27,7 @@ class ROSPythonPackageBuilder:
             "Topic :: Software Development :: Libraries :: Python Modules",
         ]
         self.output_dir = output_dir
+        self._license_content = self._fetch_license_content()
 
     def _get_system_python_version(self) -> str:
         """Get the system Python version from /usr/bin/python3."""
@@ -42,6 +44,13 @@ class ROSPythonPackageBuilder:
         version = result.stdout.strip()
         print(f"Detected system Python version: {version}")
         return version
+
+    def _fetch_license_content(self) -> str:
+        """Fetch the Apache 2.0 license content from the official URL."""
+        license_url = "https://www.apache.org/licenses/LICENSE-2.0.txt"
+        print(f"Fetching Apache 2.0 license from {license_url}")
+        with urllib.request.urlopen(license_url) as response:
+            return response.read().decode("utf-8")
 
     def _create_build_directory(self, ros_package: str, build_type: str = "") -> str:
         """Create and return a build directory path for the package."""
@@ -521,6 +530,10 @@ class ROSPythonPackageBuilder:
         )
         print(f"Created setup.py at: {setup_py_path}")
 
+        # Create LICENSE file
+        license_path = self._create_license_file(build_dir)
+        print(f"Created LICENSE file at: {license_path}")
+
         # Create MANIFEST.in
         manifest_path = self.create_manifest_in(
             build_dir, f"ros_{ros_package.replace('-', '_')}"
@@ -713,6 +726,13 @@ class ROSPythonPackageBuilder:
             "dependencies": {},
         }
 
+    def _create_license_file(self, build_dir: str) -> str:
+        """Create an Apache 2.0 LICENSE file in the build directory by fetching from official URL."""
+        license_path = os.path.join(build_dir, "LICENSE")
+        with open(license_path, "w") as f:
+            f.write(self._license_content)
+        return license_path
+
     def _create_temp_package_directory(
         self, build_dir: str, ros_package: str, init_docstring: str
     ) -> str:
@@ -739,6 +759,9 @@ class ROSPythonPackageBuilder:
         extras_require_section: str = "{}",
     ) -> str:
         """Generate setup.py content with common structure."""
+        # Escape quotes in description to avoid issues in setup.py
+        description = package_info["description"].replace('"', '\\"')
+
         setup_content = f'''#!/usr/bin/env python3
 
 from setuptools import setup, find_packages
@@ -751,8 +774,8 @@ import os
 setup(
     name="{package_info["name"]}",
     version="{package_info["version"]}",
-    description="""{package_info["description"].replace('"', '\\"')}""",
-    long_description="""{package_info["description"].replace('"', '\\"')}""",
+    description="""{description}""",
+    long_description="""{description}""",
     author="{package_info["author"]}",
     author_email="{package_info["author_email"]}",
     url="{package_info.get("url", "")}",
@@ -906,6 +929,7 @@ if os.path.exists("ros_runtime_libs"):
         manifest_content = f"""# Include all files in the package
 recursive-include {package_name} *
 recursive-include ros_runtime_libs *
+include LICENSE
 global-exclude *.pyc
 global-exclude __pycache__
 """
@@ -953,6 +977,10 @@ global-exclude __pycache__
         # Create setup.py for linker package
         setup_py_path = self.create_setup_py(build_dir, package_info, ros_package)
         print(f"Created setup.py at: {setup_py_path}")
+
+        # Create LICENSE file
+        license_path = self._create_license_file(build_dir)
+        print(f"Created LICENSE file at: {license_path}")
 
         # Create MANIFEST.in
         manifest_path = self.create_manifest_in(build_dir, ros_package)
@@ -1024,6 +1052,10 @@ global-exclude __pycache__
         # Create setup.py
         setup_py_path = self.create_setup_py(build_dir, package_info, ros_package)
         print(f"Created setup.py at: {setup_py_path}")
+
+        # Create LICENSE file
+        license_path = self._create_license_file(build_dir)
+        print(f"Created LICENSE file at: {license_path}")
 
         # Create MANIFEST.in
         manifest_path = self.create_manifest_in(build_dir, ros_package)
@@ -1111,25 +1143,25 @@ global-exclude __pycache__
 
 def build_python_artifacts(
     package_name: str,
-    ros_distro: str = "jazzy",
     output_dir: str = "build",
-    no_recurse: bool = False,
+    ros_distro: str = "jazzy",
+    recurse: bool = True,
 ):
     """Build Python artifacts from ROS packages. The artifacts can then be used to build
     Python wheels.
 
     Args:
         package_name (str): The name of the ROS package to build artifacts for.
-        ros_distro (str): The ROS distribution to target (default: "jazzy").
         output_dir (str): The directory to output built artifacts (default: "build").
-        no_recurse (bool): If True, do not build dependencies recursively (default: False).
+        ros_distro (str): The ROS distribution to target (default: "jazzy").
+        recurse (bool): If True, build dependencies recursively (default: True).
     """
     builder = ROSPythonPackageBuilder(ros_distro=ros_distro, output_dir=output_dir)
 
-    if no_recurse:
-        success = builder.build_artifacts(package_name)
-    else:
+    if recurse:
         success = builder.build_artifacts_recursive(package_name)
+    else:
+        success = builder.build_artifacts(package_name)
 
     if success:
         print(f"Successfully built artifacts for {package_name}")

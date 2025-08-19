@@ -31,9 +31,13 @@ dependencies = [
     "catkin_pkg",
     "fire",
     "pyelftools",
+    "requests",
     "twine",
     "wheel",
 ]
+
+[project.optional-dependencies]
+push = ["cloudsmith-cli"]
 
 [tool.setuptools.packages.find]
 include = ["ros_python_wheels*"]

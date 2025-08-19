@@ -4,13 +4,18 @@ Convert ROS packages into Python wheels that can be installed via pip.
 
 ## Benefits
 
-- **Easy Project Integration**: To include The ROS Python Client ([rclpy](https://github.com/ros2/rclpy)) in a Python project, simply add `ros-rclpy[fastrtps]` to your `pyproject.toml`
-  - Fully manage Python ROS dependencies using modern Python tooling like uv, Poetry, and conda.
+Here are some benefits unlocked by using Python wheels of ROS packages:
+
+- **Easy Project Integration**: To include The ROS Python Client ([rclpy](https://github.com/ros2/rclpy)) in a Python project, simply add `ros-rclpy[fastrtps]` to your `pyproject.toml` file.
+- **Enable Modern Python Tooling**: Easily manage Python ROS dependencies using modern Python tools like uv, Poetry, and conda.
+  - Check for vulnerabilities of ROS Python packages using tools like [socket.dev/](https://socket.dev/search?e=pypi) and pip-audit.
 - **Lightweight**: rclpy all of its dependencies takes up less than 20MB.
   - A docker image with rclpy based on `python:3.12` only takes XXX MB, compared with 875MB for `ros:jazzy-ros-base`
 - **Portable**: Allows ROS to be run on different Linux distros. The only requirement is `x86_64`.
 
-## Example: Install and Run the ROS Python Client
+## Example Usage
+
+Below steps will install and run the ROS Python client for the latest stable distribution, currently Kilted.
 
 ```bash
 # install rclpy
@@ -33,7 +38,7 @@ python -c "import rclpy; rclpy.init()"
 You need to have the ROS version that you'd like to build wheels for installed. For example,
 to build wheels for ROS 2 Jazzy, you need to have ROS 2 Jazzy installed on your system.
 
-### Usage
+### Steps
 
 Install this package and activate the environment using your favorite Python
 package/environment manager, i.e.
