@@ -19,7 +19,7 @@ def upload_wheel_to_cloudsmith(
     username: str,
     api_key: str,
     repository: str = "ros-python-wheels",
-    distro: str = "jazzy",
+    ros_distro: str = "jazzy",
 ) -> bool:
     """
     Upload a single wheel file to Cloudsmith using the 2-step process.
@@ -29,7 +29,7 @@ def upload_wheel_to_cloudsmith(
         username: Cloudsmith username
         api_key: Cloudsmith API key
         repository: Repository name (default: "ros-python-wheels")
-        distro: ROS distribution (default: "jazzy")
+        ros_distro: ROS distribution (default: "jazzy")
 
     Returns:
         True if upload successful, False otherwise
@@ -44,7 +44,9 @@ def upload_wheel_to_cloudsmith(
     sha256_hash = calculate_sha256(wheel_path)
 
     # Step 1: Upload the file and get an identifier
-    upload_url = f"https://upload.cloudsmith.io/{repository}/{distro}/{wheel_filename}"
+    upload_url = (
+        f"https://upload.cloudsmith.io/{repository}/{ros_distro}/{wheel_filename}"
+    )
     headers = {
         "Content-Sha256": sha256_hash,
     }
@@ -75,7 +77,7 @@ def upload_wheel_to_cloudsmith(
         print(f"Step 1 successful. Got identifier: {identifier}")
 
         # Step 2: Create the package using the identifier
-        create_url = f"https://api.cloudsmith.io/v1/packages/{repository}/{distro}/upload/python/"
+        create_url = f"https://api.cloudsmith.io/v1/packages/{repository}/{ros_distro}/upload/python/"
         create_headers = {
             "Content-Type": "application/json",
         }
@@ -109,7 +111,7 @@ def upload_wheel_to_cloudsmith(
 def upload_wheels_to_cloudsmith(
     folder_path: str = "dist",
     repository: str = "ros-python-wheels",
-    distro: str = "jazzy",
+    ros_distro: str = "jazzy",
 ) -> None:
     """
     Upload all wheel files from a folder to Cloudsmith.
@@ -120,7 +122,7 @@ def upload_wheels_to_cloudsmith(
     Args:
         folder_path: Path to the folder containing wheel files
         repository: Repository name
-        distro: ROS distribution
+        ros_distro: ROS distribution
 
     Returns:
         Tuple of (successful_uploads, total_wheels)
@@ -153,7 +155,7 @@ def upload_wheels_to_cloudsmith(
 
     for wheel_file in wheel_files:
         success = upload_wheel_to_cloudsmith(
-            str(wheel_file), username, api_key, repository, distro
+            str(wheel_file), username, api_key, repository, ros_distro
         )
 
         if success:

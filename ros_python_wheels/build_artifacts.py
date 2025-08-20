@@ -20,7 +20,6 @@ class ROSPythonPackageBuilder:
         self.setup_classifiers = [
             "Development Status :: 4 - Beta",
             "Intended Audience :: Developers",
-            "License :: OSI Approved :: Apache Software License",
             "Programming Language :: Python :: 3",
             f"Programming Language :: Python :: {self.python_version}",
             "Topic :: Scientific/Engineering :: Artificial Intelligence",
@@ -860,7 +859,7 @@ setup(
     classifiers=[
         {self._get_classifiers_string()},
     ],
-    python_requires=">=3.8",
+    python_requires=">={self.python_version}",
     zip_safe=False,
     has_ext_modules=lambda: {str(has_ext_modules)},
 )

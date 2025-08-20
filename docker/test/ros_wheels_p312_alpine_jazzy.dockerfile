@@ -12,3 +12,5 @@ RUN python3 -m pip install --extra-index-url https://dl.cloudsmith.io/public/ros
 COPY scripts/run_rclpy_tests.sh /run_rclpy_tests.sh
 
 ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+
+CMD ["/bin/sh", "/run_rclpy_tests.sh"]

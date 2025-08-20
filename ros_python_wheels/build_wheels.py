@@ -63,6 +63,9 @@ def get_all_needed_libs(path: str) -> list[str]:
 
     while libs_to_process:
         current_path = libs_to_process.popleft()
+        curr_lib = os.path.basename(current_path)
+        if curr_lib in all_needed_libs or curr_lib in processed_paths:
+            continue
 
         if not os.path.isabs(current_path):
             # Try to resolve relative path or just name
@@ -75,6 +78,7 @@ def get_all_needed_libs(path: str) -> list[str]:
         if current_path in processed_paths:
             continue
 
+        print(f"Processing {current_path}")
         processed_paths.add(current_path)
 
         try:
@@ -94,8 +98,9 @@ def get_all_needed_libs(path: str) -> list[str]:
                         ):
                             all_needed_libs.add(needed_lib)
                             libs_to_process.append(needed_lib)
+                            print(f"  Found dependency: {needed_lib}")
         except (ELFError, FileNotFoundError, IsADirectoryError) as e:
-            # print(f"Warning: Could not process {current_path}: {e}")
+            print(f"Warning: Could not process {current_path}: {e}")
             continue
     return sorted(list(all_needed_libs))
 
