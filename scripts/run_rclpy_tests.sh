@@ -1,5 +1,35 @@
 #!/bin/bash
 
+# Check if ROS_DISTRO argument is provided
+if [ $# -eq 0 ]; then
+    echo "Usage: $0 <ROS_DISTRO>"
+    echo "Supported distros: humble, jazzy, kilted"
+    exit 1
+fi
+
+ROS_DISTRO="$1"
+
+# Map ROS distro to rclpy version
+case "$ROS_DISTRO" in
+    "humble")
+        RCLPY_VERSION="3.3.17"
+        ;;
+    "jazzy")
+        RCLPY_VERSION="7.1.4"
+        ;;
+    "kilted")
+        RCLPY_VERSION="9.1.1"
+        ;;
+    *)
+        echo "Error: Unsupported ROS distro '$ROS_DISTRO'"
+        echo "Supported distros: humble, jazzy, kilted"
+        exit 1
+        ;;
+esac
+
+echo "Using ROS distro: $ROS_DISTRO"
+echo "Using rclpy version: $RCLPY_VERSION"
+
 mkdir -p /tmp/rclpy_test
 cd /tmp/rclpy_test
 
@@ -7,7 +37,7 @@ git clone --no-checkout https://github.com/ros2/rclpy.git
 cd rclpy
 git sparse-checkout init --cone
 git sparse-checkout set rclpy/test
-git checkout 7.1.4
+git checkout "$RCLPY_VERSION"
 rm rclpy/test/__init__.py
 touch rclpy/test/__init__.py
 
