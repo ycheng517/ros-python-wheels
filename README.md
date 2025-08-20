@@ -7,8 +7,7 @@ Convert ROS packages into Python wheels that can be installed via pip.
 Enable a first-class developer experience when working with ROS in Python projects:
 
 - **Easy Project Integration**: To include The ROS Python Client ([rclpy](https://github.com/ros2/rclpy)) in a Python project, simply add `ros-rclpy[fastrtps]` with its package repository to your `pyproject.toml` file.
-- **Enable Modern Python Tooling**: Easily manage Python ROS dependencies using modern Python tools like uv, Poetry, and conda.
-  - Check for vulnerabilities of ROS Python packages using PyPI scanners like [socket.dev/](https://socket.dev/search?e=pypi).
+- **Enable Modern Python Tooling**: Easily manage Python ROS dependencies using modern Python tools like uv, Poetry, and conda
 - **Lightweight**: The wheels of rclpy all of its dependencies have a total size of around 15MB.
   - A docker image with rclpy based on `python:3.12-alpine` only takes 263 MB, compared with 875MB for `ros:jazzy-ros-base`
 - **Portable**: Allows ROS to be run on different Linux distributions. The only requirement for now is `x86_64`.
