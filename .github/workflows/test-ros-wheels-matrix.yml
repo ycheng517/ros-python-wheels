@@ -75,12 +75,17 @@ jobs:
 
       - name: Install ROS Python packages
         run: |
-          python3 -m pip install --extra-index-url https://dl.cloudsmith.io/public/ros-python-wheels/${{ matrix.ros-distro }}/python/simple/ \
+          python3 -m pip install --break-system-packages --extra-index-url https://dl.cloudsmith.io/public/ros-python-wheels/${{ matrix.ros-distro }}/python/simple/ \
             ros-rclpy[fastrtps] ros-test-msgs pytest
 
       - name: Set environment variables
         run: |
           echo "RMW_IMPLEMENTATION=rmw_fastrtps_cpp" >> $GITHUB_ENV
+
+      - name: Basic test to see if rclpy init works
+        run: |
+          export LD_LIBRARY_PATH=$(python3 -m pip show ros-rclpy | awk '/^Location:/ {print $2}')/ros_runtime_libs
+          python3 -c "import rclpy; rclpy.init(); print('rclpy initialized successfully'); rclpy.shutdown()"
 
       - name: Make test script executable
         run: chmod +x scripts/run_rclpy_tests.sh

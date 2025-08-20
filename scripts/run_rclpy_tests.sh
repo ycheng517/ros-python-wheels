@@ -41,7 +41,7 @@ git checkout "$RCLPY_VERSION"
 rm rclpy/test/__init__.py
 touch rclpy/test/__init__.py
 
-export LD_LIBRARY_PATH=$(pip show ros-rclpy | awk '/^Location:/ {print $2}')/ros_runtime_libs
+export LD_LIBRARY_PATH=$(python3 -m pip show ros-rclpy | awk '/^Location:/ {print $2}')/ros_runtime_libs
 
 # Initialize counters
 total_tests=0
@@ -49,7 +49,7 @@ failed_tests=0
 
 for f in rclpy/test/test_*.py; do
     echo "Running test file: $f"
-    if pytest "$f"; then
+    if python3 -m pytest "$f"; then
         echo "✓ PASSED: $f"
     else
         echo "✗ FAILED: $f"
