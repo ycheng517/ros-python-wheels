@@ -38,6 +38,7 @@ dependencies = [
 
 [project.optional-dependencies]
 push = ["cloudsmith-cli"]
+test = ["pytest", "pytest-xdist"]
 
 [tool.setuptools.packages.find]
 include = ["ros_python_wheels*"]

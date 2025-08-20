@@ -344,19 +344,6 @@ class ROSPythonPackageBuilder:
 
         return dependencies
 
-    def is_ros_python_package(self, ros_package: str) -> bool:
-        """Check if it's a ROS python package (but not a system python package)."""
-        if ros_package.startswith("python3-"):
-            return False
-
-        debian_package = self.resolve_debian_package(ros_package)
-        if not debian_package:
-            return False
-
-        files = self.get_package_files(debian_package)
-        python_package_path = self.find_python_package_path(files, ros_package)
-        return python_package_path is not None
-
     def get_build_order(
         self,
         ros_package: str,
@@ -619,9 +606,94 @@ class ROSPythonPackageBuilder:
                     package_info["author"] = ", ".join(all_people)
                 if all_emails:
                     package_info["author_email"] = ", ".join(all_emails)
+            else:
+                print(
+                    f"Warning: package.xml not found for {ros_package} at {package_xml}"
+                )
+                # get version and info from debian package
+                debian_package = self.resolve_debian_package(ros_package)
+                if debian_package:
+                    self._extract_debian_package_info(debian_package, package_info)
 
         except Exception as e:
             print(f"Warning: Could not parse package.xml: {e}")
+
+    def _extract_debian_package_info(
+        self, debian_package: str, package_info: Dict[str, Any]
+    ) -> None:
+        """Extract package information from debian package using dpkg -l."""
+        try:
+            result = subprocess.run(
+                ["dpkg", "-l", debian_package],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+
+            # Parse dpkg -l output
+            lines = result.stdout.strip().split("\n")
+            for line in lines:
+                if line.startswith("ii") and debian_package in line:
+                    # Format: ii  package-name  version  architecture  description
+                    parts = line.split(None, 4)  # Split on whitespace, max 5 parts
+                    if len(parts) >= 5:
+                        version = parts[2]
+                        description = parts[4]
+
+                        # Convert debian version to Python version
+                        # e.g., 2.14.4-1noble.20250424.105713 -> 2.14.4.post1
+                        python_version = self._convert_debian_version_to_python(version)
+                        package_info["version"] = python_version
+
+                        # Extract description (remove the leading ">" if present)
+                        if description.startswith(">"):
+                            description = description[1:].strip()
+                        package_info["description"] = description
+
+                        print(
+                            f"Extracted from debian package {debian_package}: version={python_version}, description={description}"
+                        )
+                        break
+        except subprocess.CalledProcessError as e:
+            print(
+                f"Warning: Could not get debian package info for {debian_package}: {e}"
+            )
+        except Exception as e:
+            print(f"Warning: Error parsing debian package info: {e}")
+
+    def _convert_debian_version_to_python(self, debian_version: str) -> str:
+        """Convert debian package version to Python-compatible version.
+
+        Examples:
+        - 2.14.4-1noble.20250424.105713 -> 2.14.4.post1
+        - 1.2.3-2ubuntu1 -> 1.2.3.post2
+        - 0.5.0-1 -> 0.5.0.post1
+        """
+        try:
+            # Split on the first dash to separate upstream version from debian revision
+            if "-" in debian_version:
+                upstream_version, debian_revision = debian_version.split("-", 1)
+
+                # Extract just the revision number (before any additional suffixes)
+                revision_num = (
+                    debian_revision.split(".")[0].split("ubuntu")[0].split("noble")[0]
+                )
+
+                # Try to extract a number from the revision
+                import re
+
+                revision_match = re.search(r"(\d+)", revision_num)
+                if revision_match:
+                    revision = revision_match.group(1)
+                    return f"{upstream_version}.post{revision}"
+                else:
+                    return f"{upstream_version}.post1"
+            else:
+                # No debian revision, just return as-is
+                return debian_version
+        except Exception as e:
+            print(f"Warning: Could not convert version {debian_version}: {e}")
+            return debian_version
 
     def _prepare_install_requires(
         self, package_info: Dict[str, Any]

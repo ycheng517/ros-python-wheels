@@ -17,6 +17,8 @@ IGNORE_LIST = [
     "libgcc_s.so",
     "libcrypto.so",
     "libssl.so",
+    "libz.so",
+    "linux-vdso.so",
 ]
 
 
@@ -86,7 +88,10 @@ def get_all_needed_libs(path: str) -> list[str]:
                 for tag in dynamic.iter_tags():
                     if tag.entry.d_tag == "DT_NEEDED":
                         needed_lib = tag.needed
-                        if needed_lib not in all_needed_libs:
+                        if (
+                            needed_lib not in all_needed_libs
+                            and needed_lib not in IGNORE_LIST
+                        ):
                             all_needed_libs.add(needed_lib)
                             libs_to_process.append(needed_lib)
         except (ELFError, FileNotFoundError, IsADirectoryError) as e:
