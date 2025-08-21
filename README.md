@@ -15,7 +15,7 @@ Enable a first-class developer experience when working with ROS in Python projec
 ## Current Limitations
 
 - The Python version must match the Python version for a ROS distribution.
-- Only works for `x86_64` on Linux for now.
+- Only works for `x86_64-linux-gnu` systems. Linux distributions using GNU includes Ubuntu, Debian, Fedora, and Arch Linux.
 
 ## Python Package Repositories
 

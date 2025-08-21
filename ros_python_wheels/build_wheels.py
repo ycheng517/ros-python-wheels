@@ -63,15 +63,14 @@ def get_all_needed_libs(path: str) -> list[str]:
 
     while libs_to_process:
         current_path = libs_to_process.popleft()
-        curr_lib = os.path.basename(current_path)
-        if curr_lib in all_needed_libs or curr_lib in processed_paths:
+        if current_path in processed_paths:
             continue
 
         if not os.path.isabs(current_path):
             # Try to resolve relative path or just name
             resolved_path = find_library(current_path)
             if not resolved_path:
-                # print(f"Warning: Could not find library: {current_path}")
+                print(f"Warning: Could not find library: {current_path}")
                 continue
             current_path = resolved_path
 
@@ -81,27 +80,23 @@ def get_all_needed_libs(path: str) -> list[str]:
         print(f"Processing {current_path}")
         processed_paths.add(current_path)
 
-        try:
-            with open(current_path, "rb") as f:
-                elf = ELFFile(f)
-                dynamic = elf.get_section_by_name(".dynamic")
-                if not dynamic:
-                    continue
+        with open(current_path, "rb") as f:
+            elf = ELFFile(f)
+            dynamic = elf.get_section_by_name(".dynamic")
+            if not dynamic:
+                continue
 
-                # Iterate through the DT_NEEDED tags
-                for tag in dynamic.iter_tags():
-                    if tag.entry.d_tag == "DT_NEEDED":
-                        needed_lib = tag.needed
-                        if (
-                            needed_lib not in all_needed_libs
-                            and needed_lib not in IGNORE_LIST
-                        ):
-                            all_needed_libs.add(needed_lib)
-                            libs_to_process.append(needed_lib)
-                            print(f"  Found dependency: {needed_lib}")
-        except (ELFError, FileNotFoundError, IsADirectoryError) as e:
-            print(f"Warning: Could not process {current_path}: {e}")
-            continue
+            # Iterate through the DT_NEEDED tags
+            for tag in dynamic.iter_tags():
+                if tag.entry.d_tag == "DT_NEEDED":
+                    needed_lib = tag.needed
+                    is_ignored = any(
+                        needed_lib.startswith(ignored) for ignored in IGNORE_LIST
+                    )
+                    if needed_lib not in all_needed_libs and not is_ignored:
+                        all_needed_libs.add(needed_lib)
+                        libs_to_process.append(needed_lib)
+                        print(f"  Found dependency: {needed_lib}")
     return sorted(list(all_needed_libs))
 
 

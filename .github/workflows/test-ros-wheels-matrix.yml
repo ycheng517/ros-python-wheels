@@ -14,35 +14,19 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Alpine with different ROS distros
+          # Debian slim with different ROS distros
           - python-version: "3.10"
-            os-type: alpine
-            container: python:3.10-alpine
-            install-cmd: apk update && apk add --no-cache git bash
-            ros-distro: humble
-          - python-version: "3.12"
-            os-type: alpine
-            container: python:3.12-alpine
-            install-cmd: apk update && apk add --no-cache git bash
-            ros-distro: jazzy
-          - python-version: "3.12"
-            os-type: alpine
-            container: python:3.12-alpine
-            install-cmd: apk update && apk add --no-cache git bash
-            ros-distro: kilted
-          # Ubuntu slim with different ROS distros
-          - python-version: "3.10"
-            os-type: ubuntu-slim
+            os-type: debian-slim
             container: python:3.10-slim
             install-cmd: apt-get update && apt-get install -y git
             ros-distro: humble
           - python-version: "3.12"
-            os-type: ubuntu-slim
+            os-type: debian-slim
             container: python:3.12-slim
             install-cmd: apt-get update && apt-get install -y git
             ros-distro: jazzy
           - python-version: "3.12"
-            os-type: ubuntu-slim
+            os-type: debian-slim
             container: python:3.12-slim
             install-cmd: apt-get update && apt-get install -y git
             ros-distro: kilted
@@ -91,7 +75,7 @@ jobs:
         run: chmod +x scripts/run_rclpy_tests.sh
 
       - name: Run RClPy tests
-        run: ./scripts/run_rclpy_tests.sh ${{ matrix.ros-distro }}
+        run: sh ./scripts/run_rclpy_tests.sh ${{ matrix.ros-distro }}
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
