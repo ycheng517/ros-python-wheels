@@ -3,6 +3,8 @@ import os
 import subprocess
 from catkin_pkg.package import parse_package
 
+from .utils import get_system_python_version
+
 
 class ManuallyAddedDep:
     def __init__(self, name: str):
@@ -34,47 +36,53 @@ def resolve_rosdep_to_debian(package_name: str) -> str:
         return package_name
 
 
-def categorize_debian_package(debian_package_name: str, ros_distro: str) -> str:
+def categorize_debian_package(
+    debian_package_name: str, ros_distro: str, python_version: str
+) -> str:
     """
     Categorize a package by checking its name and file contents.
     Returns: 'ros-python', 'ros-runtime', 'ros-vendor', 'ros-linker', 'python', or 'system'
     """
     # First check if it's a ROS package
     if debian_package_name.startswith("ros-"):
-        try:
-            result = subprocess.run(
-                ["dpkg", "-L", debian_package_name],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            files = result.stdout.strip().split("\n")
+        result = subprocess.run(
+            ["dpkg", "-L", debian_package_name],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        files = result.stdout.strip().split("\n")
 
-            has_python_content = False
-            has_runtime_content = False
+        has_python_content = False
+        has_runtime_content = False
 
-            for file_path in files:
-                # Check for Python packages
-                if f"/opt/ros/{ros_distro}/lib/python3.12/site-packages/" in file_path:
-                    has_python_content = True
-                # Check for runtime libraries (.so files)
-                elif file_path.startswith(f"/opt/ros/{ros_distro}/lib/") and (
-                    file_path.endswith(".so") or ".so." in file_path
-                ):
-                    has_runtime_content = True
+        python_site_packages = (
+            f"/opt/ros/{ros_distro}/lib/python{python_version}/site-packages/"
+        )
+        # Needed for humble
+        python_dist_packages = (
+            f"/opt/ros/{ros_distro}/local/lib/python{python_version}/dist-packages/"
+        )
+        for file_path in files:
+            # Check for Python packages
+            if python_site_packages in file_path:
+                has_python_content = True
+            elif ros_distro == "humble" and python_dist_packages in file_path:
+                has_python_content = True
+            # Check for runtime libraries (.so files)
+            elif file_path.startswith(f"/opt/ros/{ros_distro}/lib/") and (
+                file_path.endswith(".so") or ".so." in file_path
+            ):
+                has_runtime_content = True
 
-            # Python packages take priority (even if they also have .so files)
-            if has_python_content:
-                return "ros-python"
-            elif has_runtime_content:
-                return "ros-runtime"
-            elif debian_package_name.endswith("-vendor"):
-                return "ros-vendor"
-            else:
-                return "ros-linker"
-
-        except (subprocess.CalledProcessError, FileNotFoundError):
-            # If dpkg -L fails, default to 'ros-linker'
+        # Python packages take priority (even if they also have .so files)
+        if has_python_content:
+            return "ros-python"
+        elif has_runtime_content:
+            return "ros-runtime"
+        elif debian_package_name.endswith("-vendor"):
+            return "ros-vendor"
+        else:
             return "ros-linker"
 
     # Check if it's a Python package
@@ -96,6 +104,7 @@ def get_deps(
     system_deps: set[str],
     processed: set[str],
     ros_distro: str,
+    python_version: str,
     level: int = 0,
     recurse: bool = True,
 ):
@@ -146,7 +155,7 @@ def get_deps(
         debian_name = resolve_rosdep_to_debian(dep_name)
 
         # Categorize the dependency
-        category = categorize_debian_package(debian_name, ros_distro)
+        category = categorize_debian_package(debian_name, ros_distro, python_version)
 
         if category == "ros-python":
             target_set = ros_python_deps
@@ -178,6 +187,7 @@ def get_deps(
                     system_deps,
                     processed,
                     ros_distro,
+                    python_version,
                     level + 1,
                     recurse,
                 )
@@ -195,6 +205,8 @@ def show_dependencies(
     if not os.path.exists(package_path):
         print(f"Error: Package '{package_name}' not found at {package_path}")
         return
+
+    python_version = get_system_python_version()
 
     # Sets to keep track of different types of dependencies
     ros_python_deps: set[str] = set()
@@ -216,7 +228,12 @@ def show_dependencies(
         processed,
         recurse=recurse,
         ros_distro=ros_distro,
+        python_version=python_version,
     )
+
+    debian_name = resolve_rosdep_to_debian(package_name)
+    category = categorize_debian_package(debian_name, ros_distro, python_version)
+    print(f"Dependencies for package '{package_name}' (category: {category}):")
 
     print("\n🐍 ROS Python Packages:")
     for dep in sorted(ros_python_deps):

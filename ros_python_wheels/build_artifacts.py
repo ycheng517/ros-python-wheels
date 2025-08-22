@@ -5,16 +5,20 @@ import sys
 from typing import Optional, List, Dict, Any
 import urllib.request
 
-from ros_python_wheels.list_deps import get_deps, categorize_debian_package
+from .list_deps import get_deps, categorize_debian_package
+from .utils import get_system_python_version
 
 
 class ROSPythonPackageBuilder:
     def __init__(self, ros_distro: str, output_dir: str):
         self.ros_distro = ros_distro
-        self.python_version = self._get_system_python_version()
+        self.python_version = get_system_python_version()
         self.ros_python_path = (
             f"/opt/ros/{ros_distro}/lib/python{self.python_version}/site-packages"
         )
+        self.ros_python_extra_path = ""
+        if ros_distro == "humble":
+            self.ros_python_extra_path = f"/opt/ros/{ros_distro}/local/lib/python{self.python_version}/dist-packages"
 
         # Common setup.py classifiers
         self.setup_classifiers = [
@@ -27,22 +31,6 @@ class ROSPythonPackageBuilder:
         ]
         self.output_dir = output_dir
         self._license_content = self._fetch_license_content()
-
-    def _get_system_python_version(self) -> str:
-        """Get the system Python version from /usr/bin/python3."""
-        result = subprocess.run(
-            [
-                "/usr/bin/python3",
-                "-c",
-                "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')",
-            ],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        version = result.stdout.strip()
-        print(f"Detected system Python version: {version}")
-        return version
 
     def _fetch_license_content(self) -> str:
         """Fetch the Apache 2.0 license content from the official URL."""
@@ -103,31 +91,39 @@ class ROSPythonPackageBuilder:
         self, files: List[str], package_name: str
     ) -> Optional[str]:
         """Find the Python package path in the file list."""
-        python_site_packages = f"{self.ros_python_path}/"
+        # Search paths in order of priority
+        search_paths = [f"{self.ros_python_path}/"]
+        if self.ros_python_extra_path:
+            search_paths.append(f"{self.ros_python_extra_path}/")
 
-        for file_path in files:
-            if file_path.startswith(python_site_packages):
-                # Check if this is the package directory
-                relative_path = file_path[len(python_site_packages) :]
-                if (
-                    relative_path.startswith(package_name + "/")
-                    or relative_path == package_name
-                ):
-                    return f"{python_site_packages}{package_name}"
+        for python_site_packages in search_paths:
+            for file_path in files:
+                if file_path.startswith(python_site_packages):
+                    # Check if this is the package directory
+                    relative_path = file_path[len(python_site_packages) :]
+                    if (
+                        relative_path.startswith(package_name + "/")
+                        or relative_path == package_name
+                    ):
+                        return f"{python_site_packages}{package_name}"
 
         return None
 
     def find_egg_info_path(self, files: List[str], package_name: str) -> Optional[str]:
         """Find the .egg-info directory for the package."""
-        python_site_packages = f"{self.ros_python_path}/"
+        # Search paths in order of priority
+        search_paths = [f"{self.ros_python_path}/"]
+        if self.ros_python_extra_path:
+            search_paths.append(f"{self.ros_python_extra_path}/")
 
-        for file_path in files:
-            if file_path.startswith(python_site_packages):
-                relative_path = file_path[len(python_site_packages) :]
-                if relative_path.startswith(
-                    f"{package_name}-"
-                ) and relative_path.endswith(".egg-info"):
-                    return file_path
+        for python_site_packages in search_paths:
+            for file_path in files:
+                if file_path.startswith(python_site_packages):
+                    relative_path = file_path[len(python_site_packages) :]
+                    if relative_path.startswith(
+                        f"{package_name}-"
+                    ) and relative_path.endswith(".egg-info"):
+                        return file_path
         return None
 
     def extract_package_info(
@@ -301,6 +297,7 @@ class ROSPythonPackageBuilder:
             system_deps,
             processed,
             ros_distro=self.ros_distro,
+            python_version=self.python_version,
             level=0,
             recurse=False,
         )
@@ -320,6 +317,7 @@ class ROSPythonPackageBuilder:
                 system_deps,
                 processed,
                 ros_distro=self.ros_distro,
+                python_version=self.python_version,
                 level=0,
                 recurse=False,
             )
@@ -369,7 +367,9 @@ class ROSPythonPackageBuilder:
             print(f"Could not resolve debian package for {ros_package}")
             return order
 
-        package_type = categorize_debian_package(debian_package, self.ros_distro)
+        package_type = categorize_debian_package(
+            debian_package, self.ros_distro, self.python_version
+        )
         if (
             package_type in ("ros-python", "ros-runtime", "ros-linker")
             and "cmake" not in ros_package
@@ -393,6 +393,7 @@ class ROSPythonPackageBuilder:
                 system_deps,
                 processed,
                 ros_distro=self.ros_distro,
+                python_version=self.python_version,
                 level=0,
                 recurse=True,
             )
@@ -1076,11 +1077,17 @@ global-exclude __pycache__
         # Step 3: Find Python package path
         python_package_path = self.find_python_package_path(files, ros_package)
         if not python_package_path:
+            search_paths = [self.ros_python_path]
+            if self.ros_python_extra_path:
+                search_paths.append(self.ros_python_extra_path)
+            search_paths_str = " or ".join(search_paths)
             print(
-                f"Could not find Python package for {ros_package} in {self.ros_python_path}"
+                f"Could not find Python package for {ros_package} in {search_paths_str}"
             )
             print("Available Python files:")
-            python_files = [f for f in files if self.ros_python_path in f]
+            python_files = []
+            for search_path in search_paths:
+                python_files.extend([f for f in files if search_path in f])
             for f in python_files[:10]:  # Show first 10
                 print(f"  {f}")
             if len(python_files) > 10:
