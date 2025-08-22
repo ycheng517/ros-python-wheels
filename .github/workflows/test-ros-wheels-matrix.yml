@@ -20,32 +20,38 @@ jobs:
             container: python:3.10-slim
             install-cmd: apt-get update && apt-get install -y git
             ros-distro: humble
+            use-venv: false
           - python-version: "3.12"
             os-type: debian-slim
             container: python:3.12-slim
             install-cmd: apt-get update && apt-get install -y git
             ros-distro: jazzy
+            use-venv: false
           - python-version: "3.12"
             os-type: debian-slim
             container: python:3.12-slim
             install-cmd: apt-get update && apt-get install -y git
             ros-distro: kilted
-          # Ubuntu 24.04 with different ROS distros
+            use-venv: false
+          # Ubuntu with different ROS distros
           - python-version: "3.12"
             os-type: ubuntu-22.04
             container: ubuntu:22.04
-            install-cmd: apt-get update && apt-get install -y python3 python3-pip git
+            install-cmd: apt-get update && apt-get install -y python3 python3-pip python3-venv git
             ros-distro: humble
+            use-venv: true
           - python-version: "3.12"
             os-type: ubuntu-24.04
             container: ubuntu:24.04
-            install-cmd: apt-get update && apt-get install -y python3 python3-pip git
+            install-cmd: apt-get update && apt-get install -y python3 python3-pip python3-venv git
             ros-distro: jazzy
+            use-venv: true
           - python-version: "3.12"
             os-type: ubuntu-24.04
             container: ubuntu:24.04
-            install-cmd: apt-get update && apt-get install -y python3 python3-pip git
+            install-cmd: apt-get update && apt-get install -y python3 python3-pip python3-venv git
             ros-distro: kilted
+            use-venv: true
 
     container:
       image: ${{ matrix.container }}
@@ -57,9 +63,16 @@ jobs:
       - name: Install system dependencies
         run: ${{ matrix.install-cmd }}
 
+      - name: Create virtual environment (Ubuntu only)
+        if: matrix.use-venv == true
+        run: |
+          python3 -m venv /opt/venv
+          echo "/opt/venv/bin" >> $GITHUB_PATH
+
       - name: Install ROS Python packages
         run: |
-          python3 -m pip install --break-system-packages --extra-index-url https://dl.cloudsmith.io/public/ros-python-wheels/${{ matrix.ros-distro }}/python/simple/ \
+          python3 -m pip install \
+            --extra-index-url https://dl.cloudsmith.io/public/ros-python-wheels/${{ matrix.ros-distro }}/python/simple/ \
             ros-rclpy[fastrtps] ros-test-msgs pytest
 
       - name: Set environment variables

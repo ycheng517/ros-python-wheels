@@ -505,10 +505,16 @@ class ROSPythonPackageBuilder:
         build_dir = self._create_build_directory(ros_package, "runtime")
         print(f"Using build directory: {build_dir}")
 
-        # Create package directory structure
-        self._create_temp_package_directory(
-            build_dir, ros_package, f"ROS {ros_package} runtime libraries package."
-        )
+        # Create package directory structure (runtime packages only need ros_runtime_libs)
+        # The main package directory is not needed since we only package ros_runtime_libs
+        # But we create it for consistency and potential future use
+        package_dest = os.path.join(build_dir, ros_package)
+        os.makedirs(package_dest, exist_ok=True)
+
+        # Create empty __init__.py to make it a Python package
+        init_file = os.path.join(package_dest, "__init__.py")
+        with open(init_file, "w") as f:
+            f.write(f'"""ROS {ros_package} runtime libraries package."""\n')
 
         # Create setup.py for runtime library package
         setup_py_path = self.create_runtime_setup_py(
@@ -521,9 +527,7 @@ class ROSPythonPackageBuilder:
         print(f"Created LICENSE file at: {license_path}")
 
         # Create MANIFEST.in
-        manifest_path = self.create_manifest_in(
-            build_dir, f"ros_{ros_package.replace('-', '_')}"
-        )
+        manifest_path = self.create_manifest_in(build_dir, ros_package)
         print(f"Created MANIFEST.in at: {manifest_path}")
         return True
 
@@ -804,21 +808,6 @@ class ROSPythonPackageBuilder:
             f.write(self._license_content)
         return license_path
 
-    def _create_temp_package_directory(
-        self, build_dir: str, ros_package: str, init_docstring: str
-    ) -> str:
-        """Create package directory structure in temp directory."""
-        package_name = f"ros_{ros_package.replace('-', '_')}"
-        package_dest = os.path.join(build_dir, package_name)
-        os.makedirs(package_dest, exist_ok=True)
-
-        # Create empty __init__.py to make it a Python package
-        init_file = os.path.join(package_dest, "__init__.py")
-        with open(init_file, "w") as f:
-            f.write(f'"""{init_docstring}"""\n')
-
-        return package_dest
-
     def _generate_setup_py_content(
         self,
         package_info: Dict[str, Any],
@@ -985,10 +974,16 @@ if os.path.exists("ros_runtime_libs"):
     if ros_runtime_libs_files:
         package_data["ros_runtime_libs"] = ros_runtime_libs_files'''
 
+        # Explicitly specify packages to avoid any naming issues
+        packages_list = [f'"{ros_package_name}"']
+        if os.path.exists(os.path.join(build_dir, "ros_runtime_libs")):
+            packages_list.append('"ros_runtime_libs"')
+        packages_spec = f"[{', '.join(packages_list)}]"
+
         setup_py_content = self._generate_setup_py_content(
             package_info=package_info,
             install_requires_section=install_requires_section,
-            packages_spec="find_packages()",
+            packages_spec=packages_spec,
             package_data_spec="package_data",
             additional_setup_code=additional_setup_code,
             extras_require_section=extras_require_section,
@@ -1038,12 +1033,14 @@ global-exclude __pycache__
         build_dir = self._create_build_directory(ros_package, "linker")
         print(f"Using build directory: {build_dir}")
 
-        # Create package directory structure
-        self._create_temp_package_directory(
-            build_dir,
-            ros_package,
-            f"ROS {ros_package} linker package with dependencies only.",
-        )
+        # Create package directory structure with correct name (no ros_ prefix)
+        package_dest = os.path.join(build_dir, ros_package)
+        os.makedirs(package_dest, exist_ok=True)
+
+        # Create empty __init__.py to make it a Python package
+        init_file = os.path.join(package_dest, "__init__.py")
+        with open(init_file, "w") as f:
+            f.write(f'"""ROS {ros_package} linker package with dependencies only."""\n')
 
         # Create setup.py for linker package
         setup_py_path = self.create_setup_py(build_dir, package_info, ros_package)
