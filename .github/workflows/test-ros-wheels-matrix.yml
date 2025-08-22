@@ -87,8 +87,8 @@ jobs:
       - name: Make test script executable
         run: chmod +x scripts/run_rclpy_tests.sh
 
-      - name: Run RClPy tests
-        run: sh ./scripts/run_rclpy_tests.sh ${{ matrix.ros-distro }}
+      - name: Run rclpy tests
+        run: ./scripts/run_rclpy_tests.sh ${{ matrix.ros-distro }}
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
