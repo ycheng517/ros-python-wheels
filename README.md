@@ -1,6 +1,6 @@
 # ROS Python Wheels
 
-Convert ROS packages into Python wheels that can be installed via pip and hosted at [Cloudsmith](https://cloudsmith.com).
+Convert ROS packages into Python wheels that can be installed via pip. A select number of packages are hosted at Python package repositories on [Cloudsmith](https://cloudsmith.com).
 
 ## Benefits
 
@@ -26,7 +26,7 @@ Packages are hosted at [Cloudsmith](https://cloudsmith.com), where there's a sep
 
 ### Available Packages
 
-Open each package repository link in your browser to see the list of packages it contains.
+Open each package repository link in your browser to see the list of packages it contains. Currently common_interfaces and rclpy and their dependencies are uploaded.
 
 ## Example Usage
 
