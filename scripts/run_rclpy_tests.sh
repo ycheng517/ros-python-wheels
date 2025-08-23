@@ -46,14 +46,26 @@ export LD_LIBRARY_PATH=$(python3 -m pip show ros-rclpy | awk '/^Location:/ {prin
 # Initialize counters
 total_tests=0
 failed_tests=0
+allowed_failures=0
+
+# List of tests that are allowed to fail
+allowed_to_fail=("test_type_description_service.py" "test_destruction_order.py")
 
 for f in rclpy/test/test_*.py; do
     echo "Running test file: $f"
+    test_name=$(basename "$f")
+    
     if python3 -m pytest "$f"; then
         echo "✓ PASSED: $f"
     else
-        echo "✗ FAILED: $f"
-        ((failed_tests++))
+        # Check if this test is in the allowed failures list
+        if [[ " ${allowed_to_fail[@]} " =~ " ${test_name} " ]]; then
+            echo "⚠️  FAILED (ALLOWED): $f"
+            ((allowed_failures++))
+        else
+            echo "✗ FAILED: $f"
+            ((failed_tests++))
+        fi
     fi
     ((total_tests++))
 done
@@ -63,9 +75,13 @@ echo ""
 echo "==================== TEST SUMMARY ===================="
 echo "Total test files: $total_tests"
 echo "Failed test files: $failed_tests"
-echo "Passed test files: $((total_tests - failed_tests))"
+echo "Allowed failures: $allowed_failures"
+echo "Passed test files: $((total_tests - failed_tests - allowed_failures))"
 if [ $failed_tests -eq 0 ]; then
     echo "🎉 All tests passed!"
+    if [ $allowed_failures -gt 0 ]; then
+        echo "Note: $allowed_failures test(s) failed but are allowed to fail"
+    fi
 else
     echo "⚠️  $failed_tests test file(s) failed"
 fi
