@@ -1,0 +1,17 @@
+[project]
+name = "ros-python-wheels-pub-sub-example"
+version = "0.1.0"
+description = "A minimal publisher and subscriber example for rclpy."
+requires-python = "==3.12.*"
+dependencies = [
+    "ros-rclpy[fastrtps]",
+    "ros-std-msgs",
+]
+
+[[tool.uv.index]]
+name = "ros2-jazzy"
+url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/"
+
+[tool.uv.sources]
+ros-rclpy = { index = "ros2-jazzy" }
+ros-std-msgs = { index = "ros2-jazzy" }

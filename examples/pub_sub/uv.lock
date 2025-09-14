@@ -1,0 +1,791 @@
+version = 1
+revision = 2
+requires-python = "==3.12.*"
+
+[[package]]
+name = "argcomplete"
+version = "3.6.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/16/0f/861e168fc813c56a78b35f3c30d91c6757d1fd185af1110f1aec784b35d0/argcomplete-3.6.2.tar.gz", hash = "sha256:d0519b1bc867f5f4f4713c41ad0aba73a4a5f007449716b16f385f2166dc6adf", size = 73403, upload_time = "2025-04-03T04:57:03.52Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/31/da/e42d7a9d8dd33fa775f467e4028a47936da2f01e4b0e561f9ba0d74cb0ca/argcomplete-3.6.2-py3-none-any.whl", hash = "sha256:65b3133a29ad53fb42c48cf5114752c7ab66c1c38544fdf6460f450c09b42591", size = 43708, upload_time = "2025-04-03T04:57:01.591Z" },
+]
+
+[[package]]
+name = "empy"
+version = "4.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c1/0a/c500fc4c8f48cac08b76b8987070b178f0549534584ac1f414066700a3f9/empy-4.2.tar.gz", hash = "sha256:86f15e1da9743e79a2e9b2cbacf1a13d0b7fb1835b6254eb253c978b72287f4f", size = 166069, upload_time = "2024-08-25T23:32:09.946Z" }
+
+[[package]]
+name = "importlib-metadata"
+version = "8.7.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "zipp" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/76/66/650a33bd90f786193e4de4b3ad86ea60b53c89b669a5c7be931fac31cdb0/importlib_metadata-8.7.0.tar.gz", hash = "sha256:d13b81ad223b890aa16c5471f2ac3056cf76c5f10f82d6f9292f0b415f389000", size = 56641, upload_time = "2025-04-27T15:29:01.736Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/20/b0/36bd937216ec521246249be3bf9855081de4c5e06a0c9b4219dbeda50373/importlib_metadata-8.7.0-py3-none-any.whl", hash = "sha256:e5dd1551894c77868a30651cef00984d50e1002d06942a7101d34870c5f02afd", size = 27656, upload_time = "2025-04-27T15:29:00.214Z" },
+]
+
+[[package]]
+name = "lark-parser"
+version = "0.12.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/5a/ee/fd1192d7724419ddfe15b6f17d1c8742800d4de917c0adac3b6aaf22e921/lark-parser-0.12.0.tar.gz", hash = "sha256:15967db1f1214013dca65b1180745047b9be457d73da224fcda3d9dd4e96a138", size = 235029, upload_time = "2021-08-30T09:14:44.484Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/76/00/90f05db333fe1aa6b6ffea83a35425b7d53ea95c8bba0b1597f226cf1d5f/lark_parser-0.12.0-py2.py3-none-any.whl", hash = "sha256:0eaf30cb5ba787fe404d73a7d6e61df97b21d5a63ac26c5008c78a494373c675", size = 103498, upload_time = "2021-08-30T13:01:01.603Z" },
+]
+
+[[package]]
+name = "numpy"
+version = "2.3.3"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d0/19/95b3d357407220ed24c139018d2518fab0a61a948e68286a25f1a4d049ff/numpy-2.3.3.tar.gz", hash = "sha256:ddc7c39727ba62b80dfdbedf400d1c10ddfa8eefbd7ec8dcb118be8b56d31029", size = 20576648, upload_time = "2025-09-09T16:54:12.543Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/51/5d/bb7fc075b762c96329147799e1bcc9176ab07ca6375ea976c475482ad5b3/numpy-2.3.3-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:cfdd09f9c84a1a934cde1eec2267f0a43a7cd44b2cca4ff95b7c0d14d144b0bf", size = 20957014, upload_time = "2025-09-09T15:56:29.966Z" },
+    { url = "https://files.pythonhosted.org/packages/6b/0e/c6211bb92af26517acd52125a237a92afe9c3124c6a68d3b9f81b62a0568/numpy-2.3.3-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:cb32e3cf0f762aee47ad1ddc6672988f7f27045b0783c887190545baba73aa25", size = 14185220, upload_time = "2025-09-09T15:56:32.175Z" },
+    { url = "https://files.pythonhosted.org/packages/22/f2/07bb754eb2ede9073f4054f7c0286b0d9d2e23982e090a80d478b26d35ca/numpy-2.3.3-cp312-cp312-macosx_14_0_arm64.whl", hash = "sha256:396b254daeb0a57b1fe0ecb5e3cff6fa79a380fa97c8f7781a6d08cd429418fe", size = 5113918, upload_time = "2025-09-09T15:56:34.175Z" },
+    { url = "https://files.pythonhosted.org/packages/81/0a/afa51697e9fb74642f231ea36aca80fa17c8fb89f7a82abd5174023c3960/numpy-2.3.3-cp312-cp312-macosx_14_0_x86_64.whl", hash = "sha256:067e3d7159a5d8f8a0b46ee11148fc35ca9b21f61e3c49fbd0a027450e65a33b", size = 6647922, upload_time = "2025-09-09T15:56:36.149Z" },
+    { url = "https://files.pythonhosted.org/packages/5d/f5/122d9cdb3f51c520d150fef6e87df9279e33d19a9611a87c0d2cf78a89f4/numpy-2.3.3-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:1c02d0629d25d426585fb2e45a66154081b9fa677bc92a881ff1d216bc9919a8", size = 14281991, upload_time = "2025-09-09T15:56:40.548Z" },
+    { url = "https://files.pythonhosted.org/packages/51/64/7de3c91e821a2debf77c92962ea3fe6ac2bc45d0778c1cbe15d4fce2fd94/numpy-2.3.3-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:d9192da52b9745f7f0766531dcfa978b7763916f158bb63bdb8a1eca0068ab20", size = 16641643, upload_time = "2025-09-09T15:56:43.343Z" },
+    { url = "https://files.pythonhosted.org/packages/30/e4/961a5fa681502cd0d68907818b69f67542695b74e3ceaa513918103b7e80/numpy-2.3.3-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:cd7de500a5b66319db419dc3c345244404a164beae0d0937283b907d8152e6ea", size = 16056787, upload_time = "2025-09-09T15:56:46.141Z" },
+    { url = "https://files.pythonhosted.org/packages/99/26/92c912b966e47fbbdf2ad556cb17e3a3088e2e1292b9833be1dfa5361a1a/numpy-2.3.3-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:93d4962d8f82af58f0b2eb85daaf1b3ca23fe0a85d0be8f1f2b7bb46034e56d7", size = 18579598, upload_time = "2025-09-09T15:56:49.844Z" },
+    { url = "https://files.pythonhosted.org/packages/17/b6/fc8f82cb3520768718834f310c37d96380d9dc61bfdaf05fe5c0b7653e01/numpy-2.3.3-cp312-cp312-win32.whl", hash = "sha256:5534ed6b92f9b7dca6c0a19d6df12d41c68b991cef051d108f6dbff3babc4ebf", size = 6320800, upload_time = "2025-09-09T15:56:52.499Z" },
+    { url = "https://files.pythonhosted.org/packages/32/ee/de999f2625b80d043d6d2d628c07d0d5555a677a3cf78fdf868d409b8766/numpy-2.3.3-cp312-cp312-win_amd64.whl", hash = "sha256:497d7cad08e7092dba36e3d296fe4c97708c93daf26643a1ae4b03f6294d30eb", size = 12786615, upload_time = "2025-09-09T15:56:54.422Z" },
+    { url = "https://files.pythonhosted.org/packages/49/6e/b479032f8a43559c383acb20816644f5f91c88f633d9271ee84f3b3a996c/numpy-2.3.3-cp312-cp312-win_arm64.whl", hash = "sha256:ca0309a18d4dfea6fc6262a66d06c26cfe4640c3926ceec90e57791a82b6eee5", size = 10195936, upload_time = "2025-09-09T15:56:56.541Z" },
+]
+
+[[package]]
+name = "pyyaml"
+version = "6.0.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/54/ed/79a089b6be93607fa5cdaedf301d7dfb23af5f25c398d5ead2525b063e17/pyyaml-6.0.2.tar.gz", hash = "sha256:d584d9ec91ad65861cc08d42e834324ef890a082e591037abe114850ff7bbc3e", size = 130631, upload_time = "2024-08-06T20:33:50.674Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/86/0c/c581167fc46d6d6d7ddcfb8c843a4de25bdd27e4466938109ca68492292c/PyYAML-6.0.2-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:c70c95198c015b85feafc136515252a261a84561b7b1d51e3384e0655ddf25ab", size = 183873, upload_time = "2024-08-06T20:32:25.131Z" },
+    { url = "https://files.pythonhosted.org/packages/a8/0c/38374f5bb272c051e2a69281d71cba6fdb983413e6758b84482905e29a5d/PyYAML-6.0.2-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:ce826d6ef20b1bc864f0a68340c8b3287705cae2f8b4b1d932177dcc76721725", size = 173302, upload_time = "2024-08-06T20:32:26.511Z" },
+    { url = "https://files.pythonhosted.org/packages/c3/93/9916574aa8c00aa06bbac729972eb1071d002b8e158bd0e83a3b9a20a1f7/PyYAML-6.0.2-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:1f71ea527786de97d1a0cc0eacd1defc0985dcf6b3f17bb77dcfc8c34bec4dc5", size = 739154, upload_time = "2024-08-06T20:32:28.363Z" },
+    { url = "https://files.pythonhosted.org/packages/95/0f/b8938f1cbd09739c6da569d172531567dbcc9789e0029aa070856f123984/PyYAML-6.0.2-cp312-cp312-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:9b22676e8097e9e22e36d6b7bda33190d0d400f345f23d4065d48f4ca7ae0425", size = 766223, upload_time = "2024-08-06T20:32:30.058Z" },
+    { url = "https://files.pythonhosted.org/packages/b9/2b/614b4752f2e127db5cc206abc23a8c19678e92b23c3db30fc86ab731d3bd/PyYAML-6.0.2-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:80bab7bfc629882493af4aa31a4cfa43a4c57c83813253626916b8c7ada83476", size = 767542, upload_time = "2024-08-06T20:32:31.881Z" },
+    { url = "https://files.pythonhosted.org/packages/d4/00/dd137d5bcc7efea1836d6264f049359861cf548469d18da90cd8216cf05f/PyYAML-6.0.2-cp312-cp312-musllinux_1_1_aarch64.whl", hash = "sha256:0833f8694549e586547b576dcfaba4a6b55b9e96098b36cdc7ebefe667dfed48", size = 731164, upload_time = "2024-08-06T20:32:37.083Z" },
+    { url = "https://files.pythonhosted.org/packages/c9/1f/4f998c900485e5c0ef43838363ba4a9723ac0ad73a9dc42068b12aaba4e4/PyYAML-6.0.2-cp312-cp312-musllinux_1_1_x86_64.whl", hash = "sha256:8b9c7197f7cb2738065c481a0461e50ad02f18c78cd75775628afb4d7137fb3b", size = 756611, upload_time = "2024-08-06T20:32:38.898Z" },
+    { url = "https://files.pythonhosted.org/packages/df/d1/f5a275fdb252768b7a11ec63585bc38d0e87c9e05668a139fea92b80634c/PyYAML-6.0.2-cp312-cp312-win32.whl", hash = "sha256:ef6107725bd54b262d6dedcc2af448a266975032bc85ef0172c5f059da6325b4", size = 140591, upload_time = "2024-08-06T20:32:40.241Z" },
+    { url = "https://files.pythonhosted.org/packages/0c/e8/4f648c598b17c3d06e8753d7d13d57542b30d56e6c2dedf9c331ae56312e/PyYAML-6.0.2-cp312-cp312-win_amd64.whl", hash = "sha256:7e7401d0de89a9a855c839bc697c079a4af81cf878373abd7dc625847d25cbd8", size = 156338, upload_time = "2024-08-06T20:32:41.93Z" },
+]
+
+[[package]]
+name = "ros-action-msgs"
+version = "2.0.2"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-builtin-interfaces" },
+    { name = "ros-rosidl-core-runtime" },
+    { name = "ros-service-msgs" },
+    { name = "ros-unique-identifier-msgs" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_action_msgs-2.0.2-cp312-cp312-linux_x86_64.whl", hash = "sha256:aa6b1e7383d20b2c252411fe90a4be63dc81c91e6b0f2562f15843a22e2bab1a" },
+]
+
+[[package]]
+name = "ros-ament-index-cpp"
+version = "1.8.1"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_ament_index_cpp-1.8.1-cp312-cp312-linux_x86_64.whl", hash = "sha256:5f2730ba8b216b720d722021d18465722074678560cfb916b3d5422bf7660b9c" },
+]
+
+[[package]]
+name = "ros-ament-index-python"
+version = "1.8.1"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_ament_index_python-1.8.1-cp312-cp312-linux_x86_64.whl", hash = "sha256:628d7395655506bfda25ca7e9cfc77b0c6f65c8b4fd2bf5dd64fdcf4a1a2335b" },
+]
+
+[[package]]
+name = "ros-builtin-interfaces"
+version = "2.0.2"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-rosidl-core-runtime" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_builtin_interfaces-2.0.2-cp312-cp312-linux_x86_64.whl", hash = "sha256:12dae640aed3b448c03400bfa33349d4aa6f6597128795c1883955276ee1dbc8" },
+]
+
+[[package]]
+name = "ros-fastcdr"
+version = "2.2.5.post1"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_fastcdr-2.2.5.post1-cp312-cp312-linux_x86_64.whl", hash = "sha256:6660d258fb5033b72802e26114f265d0fee56b5267b8f6a8b0d5286e70aacedb" },
+]
+
+[[package]]
+name = "ros-fastrtps"
+version = "2.14.4.post1"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_fastrtps-2.14.4.post1-cp312-cp312-linux_x86_64.whl", hash = "sha256:9f60e631e5e90fa3c3ddd6fbf061f87ef130dbeebe4afbb048a208c4fa3496c9" },
+]
+
+[[package]]
+name = "ros-lifecycle-msgs"
+version = "2.0.2"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-rosidl-default-runtime" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_lifecycle_msgs-2.0.2-cp312-cp312-linux_x86_64.whl", hash = "sha256:42505ac1b0c9a50bd9b721612bf3c1169c36c7237ccd45b74ff59dde11b4135b" },
+]
+
+[[package]]
+name = "ros-python-wheels-pub-sub-example"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "ros-rclpy", extra = ["fastrtps"] },
+    { name = "ros-std-msgs" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "ros-rclpy", extras = ["fastrtps"], index = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" },
+    { name = "ros-std-msgs", index = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" },
+]
+
+[[package]]
+name = "ros-rcl"
+version = "9.2.7"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-rcl-interfaces" },
+    { name = "ros-rcl-logging-interface" },
+    { name = "ros-rcl-logging-spdlog" },
+    { name = "ros-rcl-yaml-param-parser" },
+    { name = "ros-rcutils" },
+    { name = "ros-rmw" },
+    { name = "ros-rmw-implementation" },
+    { name = "ros-rosidl-runtime-c" },
+    { name = "ros-service-msgs" },
+    { name = "ros-tracetools" },
+    { name = "ros-type-description-interfaces" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rcl-9.2.7-cp312-cp312-linux_x86_64.whl", hash = "sha256:70d2face66320a52ac4c5417bd6649761516de573610ede4491c692879fc6fdb" },
+]
+
+[[package]]
+name = "ros-rcl-action"
+version = "9.2.7"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-action-msgs" },
+    { name = "ros-rcl" },
+    { name = "ros-rcutils" },
+    { name = "ros-rmw" },
+    { name = "ros-rosidl-runtime-c" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rcl_action-9.2.7-cp312-cp312-linux_x86_64.whl", hash = "sha256:5bed6b17c05ff9ebb1ab604825fd41e230455e71f7fbee5bfebd0dc10b42503b" },
+]
+
+[[package]]
+name = "ros-rcl-interfaces"
+version = "2.0.2"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-builtin-interfaces" },
+    { name = "ros-rosidl-default-runtime" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rcl_interfaces-2.0.2-cp312-cp312-linux_x86_64.whl", hash = "sha256:5a4bf8ffecb7b65815326d01b3f2819af6124283f6b6ee6f86ed72eab2ab41d1" },
+]
+
+[[package]]
+name = "ros-rcl-lifecycle"
+version = "9.2.7"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-lifecycle-msgs" },
+    { name = "ros-rcl" },
+    { name = "ros-rcutils" },
+    { name = "ros-rmw" },
+    { name = "ros-rosidl-runtime-c" },
+    { name = "ros-tracetools" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rcl_lifecycle-9.2.7-cp312-cp312-linux_x86_64.whl", hash = "sha256:79ff3abc92c8220e9401bab19d996dc3a53eeca790572d25bb97af520272d3d1" },
+]
+
+[[package]]
+name = "ros-rcl-logging-interface"
+version = "3.1.1"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-rcutils" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rcl_logging_interface-3.1.1-cp312-cp312-linux_x86_64.whl", hash = "sha256:7b2521421924e5fe0912eb5c4604fc1687af0408d26f3f69b849bbe3265b3255" },
+]
+
+[[package]]
+name = "ros-rcl-logging-spdlog"
+version = "3.1.1"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-rcl-logging-interface" },
+    { name = "ros-rcpputils" },
+    { name = "ros-rcutils" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rcl_logging_spdlog-3.1.1-cp312-cp312-linux_x86_64.whl", hash = "sha256:fd2fe59885f7ae99ac1dbfc17c34f03357e44a776b1b7810c6f5e22ac2348e61" },
+]
+
+[[package]]
+name = "ros-rcl-yaml-param-parser"
+version = "9.2.7"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-rcutils" },
+    { name = "ros-rmw" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rcl_yaml_param_parser-9.2.7-cp312-cp312-linux_x86_64.whl", hash = "sha256:c063b9a5f9787fcb50843d7a61a9f93c85090f9a041afa5c968214f1dbde1ffa" },
+]
+
+[[package]]
+name = "ros-rclpy"
+version = "7.1.4"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "pyyaml" },
+    { name = "ros-action-msgs" },
+    { name = "ros-ament-index-python" },
+    { name = "ros-builtin-interfaces" },
+    { name = "ros-lifecycle-msgs" },
+    { name = "ros-rcl" },
+    { name = "ros-rcl-action" },
+    { name = "ros-rcl-interfaces" },
+    { name = "ros-rcl-lifecycle" },
+    { name = "ros-rcl-logging-interface" },
+    { name = "ros-rcl-yaml-param-parser" },
+    { name = "ros-rmw" },
+    { name = "ros-rmw-implementation" },
+    { name = "ros-rosgraph-msgs" },
+    { name = "ros-rosidl-runtime-c" },
+    { name = "ros-rpyutils" },
+    { name = "ros-unique-identifier-msgs" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rclpy-7.1.4-cp312-cp312-linux_x86_64.whl", hash = "sha256:7bcdd715673fdd7093c9d161dbd3180f2c4581bc19792b4b77e8582d9c8c2f81" },
+]
+
+[package.optional-dependencies]
+fastrtps = [
+    { name = "ros-rmw-fastrtps-cpp" },
+]
+
+[[package]]
+name = "ros-rcpputils"
+version = "2.11.2"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-rcutils" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rcpputils-2.11.2-cp312-cp312-linux_x86_64.whl", hash = "sha256:ad527c0f941064a41276c5bafcaa8581f4b76850f8c23522edef3bcf9041c4f6" },
+]
+
+[[package]]
+name = "ros-rcutils"
+version = "6.7.2"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rcutils-6.7.2-cp312-cp312-linux_x86_64.whl", hash = "sha256:6620a7a516be39d02f841c4a704633e5a3f91cda5f699d56dff754772274c739" },
+]
+
+[[package]]
+name = "ros-rmw"
+version = "7.3.2"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-rcutils" },
+    { name = "ros-rosidl-dynamic-typesupport" },
+    { name = "ros-rosidl-runtime-c" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rmw-7.3.2-cp312-cp312-linux_x86_64.whl", hash = "sha256:34385a634d4d780416fdd50adc6e640fe6b115f6c4b797eda62d933167a0c0ac" },
+]
+
+[[package]]
+name = "ros-rmw-dds-common"
+version = "3.1.0"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-rcpputils" },
+    { name = "ros-rcutils" },
+    { name = "ros-rmw" },
+    { name = "ros-rosidl-default-runtime" },
+    { name = "ros-rosidl-runtime-c" },
+    { name = "ros-rosidl-runtime-cpp" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rmw_dds_common-3.1.0-cp312-cp312-linux_x86_64.whl", hash = "sha256:515e059cdee685580d4f5780424c650f9ef8c3be78143f0aea5f39261889abb3" },
+]
+
+[[package]]
+name = "ros-rmw-fastrtps-cpp"
+version = "8.4.2"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-fastcdr" },
+    { name = "ros-fastrtps" },
+    { name = "ros-rcpputils" },
+    { name = "ros-rcutils" },
+    { name = "ros-rmw" },
+    { name = "ros-rmw-dds-common" },
+    { name = "ros-rmw-fastrtps-shared-cpp" },
+    { name = "ros-rosidl-dynamic-typesupport" },
+    { name = "ros-rosidl-dynamic-typesupport-fastrtps" },
+    { name = "ros-rosidl-runtime-c" },
+    { name = "ros-rosidl-runtime-cpp" },
+    { name = "ros-rosidl-typesupport-fastrtps-c" },
+    { name = "ros-rosidl-typesupport-fastrtps-cpp" },
+    { name = "ros-tracetools" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rmw_fastrtps_cpp-8.4.2-cp312-cp312-linux_x86_64.whl", hash = "sha256:08d620eb00859570b02eb607f0894954de54540185e3ac8da8b7341e9bf0fa5b" },
+]
+
+[[package]]
+name = "ros-rmw-fastrtps-shared-cpp"
+version = "8.4.2"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-fastcdr" },
+    { name = "ros-fastrtps" },
+    { name = "ros-rcpputils" },
+    { name = "ros-rcutils" },
+    { name = "ros-rmw" },
+    { name = "ros-rmw-dds-common" },
+    { name = "ros-rosidl-dynamic-typesupport" },
+    { name = "ros-rosidl-typesupport-introspection-c" },
+    { name = "ros-rosidl-typesupport-introspection-cpp" },
+    { name = "ros-tracetools" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rmw_fastrtps_shared_cpp-8.4.2-cp312-cp312-linux_x86_64.whl", hash = "sha256:cfc5e38a72dc0bcf10e50f62ef10cb5377e19d5b92681ab10fce5b89038b72b4" },
+]
+
+[[package]]
+name = "ros-rmw-implementation"
+version = "2.15.5"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-ament-index-cpp" },
+    { name = "ros-rcpputils" },
+    { name = "ros-rcutils" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rmw_implementation-2.15.5-cp312-cp312-linux_x86_64.whl", hash = "sha256:c5001fc5aba093f6f5426046c8435763f88d43da3de1bad3fb56135ac0c39b73" },
+]
+
+[[package]]
+name = "ros-rosgraph-msgs"
+version = "2.0.2"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-builtin-interfaces" },
+    { name = "ros-rosidl-default-runtime" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rosgraph_msgs-2.0.2-cp312-cp312-linux_x86_64.whl", hash = "sha256:4c3f9800a6ccecdd9f022b89215f20b79893a9c74305f800f81930371f47bad8" },
+]
+
+[[package]]
+name = "ros-rosidl-adapter"
+version = "4.6.5"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "empy" },
+    { name = "ros-rosidl-cli" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rosidl_adapter-4.6.5-cp312-cp312-linux_x86_64.whl", hash = "sha256:ed7a94eee439d58ffff461fb578ca521545406cc7a56351be60c57b6173aeb33" },
+]
+
+[[package]]
+name = "ros-rosidl-cli"
+version = "4.6.5"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "argcomplete" },
+    { name = "importlib-metadata" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rosidl_cli-4.6.5-cp312-cp312-linux_x86_64.whl", hash = "sha256:99994f80a52496e3b6f0d2310d0d07b3875be2a6fe0c91e9e1bb0f3c846f3196" },
+]
+
+[[package]]
+name = "ros-rosidl-core-runtime"
+version = "0.2.0"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-rosidl-generator-py" },
+    { name = "ros-rosidl-runtime-c" },
+    { name = "ros-rosidl-runtime-cpp" },
+    { name = "ros-rosidl-typesupport-c" },
+    { name = "ros-rosidl-typesupport-cpp" },
+    { name = "ros-rosidl-typesupport-fastrtps-c" },
+    { name = "ros-rosidl-typesupport-fastrtps-cpp" },
+    { name = "ros-rosidl-typesupport-introspection-c" },
+    { name = "ros-rosidl-typesupport-introspection-cpp" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rosidl_core_runtime-0.2.0-cp312-cp312-linux_x86_64.whl", hash = "sha256:5c8050de099f02223d081a4facccb892f31ac2abbbb29166961bbf87e345ff84" },
+]
+
+[[package]]
+name = "ros-rosidl-default-runtime"
+version = "1.6.0"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-action-msgs" },
+    { name = "ros-rosidl-core-runtime" },
+    { name = "ros-service-msgs" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rosidl_default_runtime-1.6.0-cp312-cp312-linux_x86_64.whl", hash = "sha256:9800beb4d3cef24642b0da98c9ee25a31bf6f62f56df6cefc04fcc86178e1c2b" },
+]
+
+[[package]]
+name = "ros-rosidl-dynamic-typesupport"
+version = "0.1.2"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-rcutils" },
+    { name = "ros-rosidl-runtime-c" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rosidl_dynamic_typesupport-0.1.2-cp312-cp312-linux_x86_64.whl", hash = "sha256:893910796471b6d8285e090151bdc20a5615e20835837a7744d1cbac911449e9" },
+]
+
+[[package]]
+name = "ros-rosidl-dynamic-typesupport-fastrtps"
+version = "0.1.0"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-fastcdr" },
+    { name = "ros-fastrtps" },
+    { name = "ros-rcutils" },
+    { name = "ros-rosidl-dynamic-typesupport" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rosidl_dynamic_typesupport_fastrtps-0.1.0-cp312-cp312-linux_x86_64.whl", hash = "sha256:36b40d32875254b65da4f0e6c589c86e7b55b440240f6a1509525493f712e32d" },
+]
+
+[[package]]
+name = "ros-rosidl-generator-c"
+version = "4.6.5"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-ament-index-python" },
+    { name = "ros-rcutils" },
+    { name = "ros-rosidl-cli" },
+    { name = "ros-rosidl-generator-type-description" },
+    { name = "ros-rosidl-parser" },
+    { name = "ros-rosidl-typesupport-interface" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rosidl_generator_c-4.6.5-cp312-cp312-linux_x86_64.whl", hash = "sha256:82ec5bc2d052a9c40e4de7ce834cdbed2a86c1d12fbc734433c7ce4a7f05b1a5" },
+]
+
+[[package]]
+name = "ros-rosidl-generator-cpp"
+version = "4.6.5"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-ament-index-python" },
+    { name = "ros-rosidl-cli" },
+    { name = "ros-rosidl-generator-c" },
+    { name = "ros-rosidl-generator-type-description" },
+    { name = "ros-rosidl-parser" },
+    { name = "ros-rosidl-runtime-cpp" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rosidl_generator_cpp-4.6.5-cp312-cp312-linux_x86_64.whl", hash = "sha256:ae3b570cb467053be2aee389c2b95f083e5895311a235d5f58d6184aa956b583" },
+]
+
+[[package]]
+name = "ros-rosidl-generator-py"
+version = "0.22.1"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "numpy" },
+    { name = "ros-ament-index-python" },
+    { name = "ros-rmw" },
+    { name = "ros-rosidl-cli" },
+    { name = "ros-rosidl-generator-c" },
+    { name = "ros-rosidl-parser" },
+    { name = "ros-rosidl-runtime-c" },
+    { name = "ros-rpyutils" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rosidl_generator_py-0.22.1-cp312-cp312-linux_x86_64.whl", hash = "sha256:abc55a3e9d4a681433a7c3584c3c3513e80b364ed1ca83bfd03f9a66180995a5" },
+]
+
+[[package]]
+name = "ros-rosidl-generator-type-description"
+version = "4.6.5"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-ament-index-python" },
+    { name = "ros-rosidl-cli" },
+    { name = "ros-rosidl-parser" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rosidl_generator_type_description-4.6.5-cp312-cp312-linux_x86_64.whl", hash = "sha256:80a5ee17209e7ddd0692b75dbc9e360ec35a96a7407b630ebd1d43859355556b" },
+]
+
+[[package]]
+name = "ros-rosidl-parser"
+version = "4.6.5"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "lark-parser" },
+    { name = "ros-rosidl-adapter" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rosidl_parser-4.6.5-cp312-cp312-linux_x86_64.whl", hash = "sha256:2e6816ff5633565af86de65d78d329c3f65c9d9bfaa42c8c91f2cc4a06795890" },
+]
+
+[[package]]
+name = "ros-rosidl-pycommon"
+version = "4.6.5"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-rosidl-parser" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rosidl_pycommon-4.6.5-cp312-cp312-linux_x86_64.whl", hash = "sha256:adcbc397ccd2976e78f96e688ea628b26b3a5fd527c14df61343d1040ece381e" },
+]
+
+[[package]]
+name = "ros-rosidl-runtime-c"
+version = "4.6.5"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-rcutils" },
+    { name = "ros-rosidl-typesupport-interface" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rosidl_runtime_c-4.6.5-cp312-cp312-linux_x86_64.whl", hash = "sha256:f8cbb27acd88e03662ed5a1ffefa230d2e6bfe952217769b068da6768a8e0e52" },
+]
+
+[[package]]
+name = "ros-rosidl-runtime-cpp"
+version = "4.6.5"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-rosidl-runtime-c" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rosidl_runtime_cpp-4.6.5-cp312-cp312-linux_x86_64.whl", hash = "sha256:ba76128eefadf5375b796ea52cec7147a4af3c3e7d1de1708729a6f10d281c46" },
+]
+
+[[package]]
+name = "ros-rosidl-typesupport-c"
+version = "3.2.2"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-ament-index-python" },
+    { name = "ros-rcpputils" },
+    { name = "ros-rcutils" },
+    { name = "ros-rosidl-cli" },
+    { name = "ros-rosidl-generator-c" },
+    { name = "ros-rosidl-pycommon" },
+    { name = "ros-rosidl-runtime-c" },
+    { name = "ros-rosidl-typesupport-interface" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rosidl_typesupport_c-3.2.2-cp312-cp312-linux_x86_64.whl", hash = "sha256:5fb9f2cc8115e3911b30c638c6be24c4b413c2511645508d25a644a9ba5860e0" },
+]
+
+[[package]]
+name = "ros-rosidl-typesupport-cpp"
+version = "3.2.2"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-ament-index-python" },
+    { name = "ros-rcpputils" },
+    { name = "ros-rcutils" },
+    { name = "ros-rosidl-cli" },
+    { name = "ros-rosidl-generator-c" },
+    { name = "ros-rosidl-generator-type-description" },
+    { name = "ros-rosidl-pycommon" },
+    { name = "ros-rosidl-runtime-c" },
+    { name = "ros-rosidl-runtime-cpp" },
+    { name = "ros-rosidl-typesupport-c" },
+    { name = "ros-rosidl-typesupport-interface" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rosidl_typesupport_cpp-3.2.2-cp312-cp312-linux_x86_64.whl", hash = "sha256:bd16771334419baa17c9378b2041495c3a229270ed887a6921b2afe9b03a49cc" },
+]
+
+[[package]]
+name = "ros-rosidl-typesupport-fastrtps-c"
+version = "3.6.1"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-ament-index-python" },
+    { name = "ros-fastcdr" },
+    { name = "ros-rmw" },
+    { name = "ros-rosidl-cli" },
+    { name = "ros-rosidl-pycommon" },
+    { name = "ros-rosidl-runtime-c" },
+    { name = "ros-rosidl-runtime-cpp" },
+    { name = "ros-rosidl-typesupport-fastrtps-cpp" },
+    { name = "ros-rosidl-typesupport-interface" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rosidl_typesupport_fastrtps_c-3.6.1-cp312-cp312-linux_x86_64.whl", hash = "sha256:3273bb06cbe04e5f5917f1c3f9a646840238c28b379c42fde7db2b3dda6adb00" },
+]
+
+[[package]]
+name = "ros-rosidl-typesupport-fastrtps-cpp"
+version = "3.6.1"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-ament-index-python" },
+    { name = "ros-fastcdr" },
+    { name = "ros-rmw" },
+    { name = "ros-rosidl-cli" },
+    { name = "ros-rosidl-pycommon" },
+    { name = "ros-rosidl-runtime-c" },
+    { name = "ros-rosidl-runtime-cpp" },
+    { name = "ros-rosidl-typesupport-interface" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rosidl_typesupport_fastrtps_cpp-3.6.1-cp312-cp312-linux_x86_64.whl", hash = "sha256:f2db4c77e637fee80bac4f040c5f1ae8cabfb4eca8474a0ab996bd6137bb42b4" },
+]
+
+[[package]]
+name = "ros-rosidl-typesupport-interface"
+version = "4.6.5"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rosidl_typesupport_interface-4.6.5-cp312-cp312-linux_x86_64.whl", hash = "sha256:740caf6a27c261ee1d5bc05df4f38f7762fad57e57f3fa3c573fe5aa1c7c84a9" },
+]
+
+[[package]]
+name = "ros-rosidl-typesupport-introspection-c"
+version = "4.6.5"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-ament-index-python" },
+    { name = "ros-rosidl-cli" },
+    { name = "ros-rosidl-generator-c" },
+    { name = "ros-rosidl-parser" },
+    { name = "ros-rosidl-pycommon" },
+    { name = "ros-rosidl-runtime-c" },
+    { name = "ros-rosidl-typesupport-interface" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rosidl_typesupport_introspection_c-4.6.5-cp312-cp312-linux_x86_64.whl", hash = "sha256:f4fc049322239a4964dc33c7a7fe1cfc2de5ed42ae025bc7a4d4cd0beddb1a9a" },
+]
+
+[[package]]
+name = "ros-rosidl-typesupport-introspection-cpp"
+version = "4.6.5"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-ament-index-python" },
+    { name = "ros-rosidl-cli" },
+    { name = "ros-rosidl-generator-c" },
+    { name = "ros-rosidl-generator-cpp" },
+    { name = "ros-rosidl-parser" },
+    { name = "ros-rosidl-pycommon" },
+    { name = "ros-rosidl-runtime-c" },
+    { name = "ros-rosidl-runtime-cpp" },
+    { name = "ros-rosidl-typesupport-interface" },
+    { name = "ros-rosidl-typesupport-introspection-c" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rosidl_typesupport_introspection_cpp-4.6.5-cp312-cp312-linux_x86_64.whl", hash = "sha256:66922e41cdbb21c1a890a64db16c9d78432a9de4308daa2c8dda86ad08cf21b9" },
+]
+
+[[package]]
+name = "ros-rpyutils"
+version = "0.4.1"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_rpyutils-0.4.1-cp312-cp312-linux_x86_64.whl", hash = "sha256:7883ee9360c2dec105d68319f4b2a2ea5d3dc07cda7ae02d6b42b4e38a792caa" },
+]
+
+[[package]]
+name = "ros-service-msgs"
+version = "2.0.2"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-builtin-interfaces" },
+    { name = "ros-rosidl-core-runtime" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_service_msgs-2.0.2-cp312-cp312-linux_x86_64.whl", hash = "sha256:e2fc961f8e9e8624418b5e73e464f41ca6834a7706732cb233ad3af4397d9b64" },
+]
+
+[[package]]
+name = "ros-std-msgs"
+version = "5.3.6"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-builtin-interfaces" },
+    { name = "ros-rosidl-default-runtime" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_std_msgs-5.3.6-cp312-cp312-linux_x86_64.whl", hash = "sha256:7dde446ded45642cbedba41feb01a8833c3ddf8a6a647dda8794cd1323e04b3b" },
+]
+
+[[package]]
+name = "ros-tracetools"
+version = "8.2.3"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_tracetools-8.2.3-cp312-cp312-linux_x86_64.whl", hash = "sha256:1d4c8e829d409cad739601484a48be18ff42e6491c94dc03eac5531d5533a47c" },
+]
+
+[[package]]
+name = "ros-type-description-interfaces"
+version = "2.0.2"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-rosidl-core-runtime" },
+    { name = "ros-service-msgs" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_type_description_interfaces-2.0.2-cp312-cp312-linux_x86_64.whl", hash = "sha256:514bb92008932469f4c7ce21d059b3ae3cb5d2d4fff4b39188b0bf5c78033003" },
+]
+
+[[package]]
+name = "ros-unique-identifier-msgs"
+version = "2.5.0"
+source = { registry = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/" }
+dependencies = [
+    { name = "ros-rosidl-core-runtime" },
+]
+wheels = [
+    { url = "https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/ros_unique_identifier_msgs-2.5.0-cp312-cp312-linux_x86_64.whl", hash = "sha256:eb810b2cf481d7c5c5abedd4cf268cad0804bba66916fd07c47e99e9aa308e95" },
+]
+
+[[package]]
+name = "zipp"
+version = "3.23.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/e3/02/0f2892c661036d50ede074e376733dca2ae7c6eb617489437771209d4180/zipp-3.23.0.tar.gz", hash = "sha256:a07157588a12518c9d4034df3fbbee09c814741a33ff63c05fa29d26a2404166", size = 25547, upload_time = "2025-06-08T17:06:39.4Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2e/54/647ade08bf0db230bfea292f893923872fd20be6ac6f53b2b936ba839d75/zipp-3.23.0-py3-none-any.whl", hash = "sha256:071652d6115ed432f5ce1d34c336c0adfd6a884660d1e9712a256d3d3bd4b14e", size = 10276, upload_time = "2025-06-08T17:06:38.034Z" },
+]
