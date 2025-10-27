@@ -1,0 +1,163 @@
+import os
+import pathlib
+import pprint
+import shutil
+import site
+import subprocess
+import sys
+import sysconfig
+
+from setuptools import Extension, setup
+from setuptools.command.build_ext import build_ext
+
+# DELETED: The CustomInstall class is no longer needed, as the
+# ros_python_wheels_index was a workaround for the non-standard
+# site-packages install. A standard install uses the ament_index
+# in the 'share' directory, which will be handled by data_files.
+
+# Ensure the package directory exists before setup runs
+pathlib.Path("{{ original_package_name }}").mkdir(exist_ok=True)
+init_py_path = pathlib.Path("{{ original_package_name }}/__init__.py")
+if not init_py_path.exists():
+    with open(init_py_path, "w") as f:
+        f.write("")
+
+# The dummy extension to force a platform wheel
+dummy_ext = Extension("{{ original_package_name }}._dummy", sources=["dummy.c"])
+
+
+# A custom build_ext command
+class CMakeBuild(build_ext):
+    def run(self):
+        # First, run the original build_ext command to build the dummy extension
+        super().run()
+
+        # Now, build the C++ library
+        build_temp = pathlib.Path(self.build_temp)
+        build_temp.mkdir(parents=True, exist_ok=True)
+        project_dir = pathlib.Path(__file__).parent.absolute()
+
+        # Set CMAKE_PREFIX_PATH and AMENT_PREFIX_PATH to find ROS dependencies
+        env = os.environ.copy()
+        
+        # MODIFIED: Use sys.prefix (the venv root) as the primary prefix path.
+        # This is the standard way Ament/CMake finds dependencies that
+        # are installed to the FHS root (venv/lib, venv/share, etc.).
+        prefix_path = sys.prefix
+        
+        # Find additional cmake paths in site-packages directories
+        cmake_paths = [prefix_path]
+        site_packages_dirs = site.getsitepackages()
+        for site_pkg_dir in site_packages_dirs:
+            if os.path.exists(site_pkg_dir):
+                for item in os.listdir(site_pkg_dir):
+                    item_path = os.path.join(site_pkg_dir, item)
+                    if os.path.isdir(item_path):
+                        # Check if this package has a share/cmake subdirectory
+                        cmake_share_path = os.path.join(item_path, "share", "cmake")
+                        if os.path.exists(cmake_share_path):
+                            # Add the package's directory to CMAKE_PREFIX_PATH
+                            if item_path not in cmake_paths:
+                                cmake_paths.append(item_path)
+                                print(f"Found cmake package in site-packages: {item} -> {item_path}")
+        
+        existing_ament = env.get("AMENT_PREFIX_PATH", "")
+        existing_cmake = env.get("CMAKE_PREFIX_PATH", "")
+
+        env["AMENT_PREFIX_PATH"] = prefix_path + ":" + existing_ament if existing_ament else prefix_path
+        cmake_prefix_path = ":".join(cmake_paths)
+        env["CMAKE_PREFIX_PATH"] = cmake_prefix_path + ":" + existing_cmake if existing_cmake else cmake_prefix_path
+
+        print(f"Using AMENT_PREFIX_PATH: {env['AMENT_PREFIX_PATH']}")
+        print(f"Using CMAKE_PREFIX_PATH: {env['CMAKE_PREFIX_PATH']}")
+
+        # Run CMake configure
+        cmake_configure_cmd = [
+            "cmake",
+            f"-S{project_dir}",
+            "-Bbuild",
+            "-G",
+            "Ninja",
+            # We still install to a temporary directory
+            f"-DCMAKE_INSTALL_PREFIX={build_temp.resolve() / 'install'}",
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-DBUILD_TESTING=OFF",
+            "-DCMAKE_POLICY_VERSION_MINIMUM=3.5",
+        ]
+
+        if "{{ original_package_name }}" == "fastrtps":
+            cmake_configure_cmd.append("-DTHIRDPARTY_Asio=FORCE")
+
+        # Add Python paths to help CMake find the correct installation
+        py_include_dir = sysconfig.get_path('platinclude')
+        libdir = sysconfig.get_config_var('LIBDIR')
+        cmake_configure_cmd.extend([
+            f'-DPYTHON_EXECUTABLE={sys.executable}',
+            f'-DPYTHON_LIBRARY={libdir}',
+            f'-DPYTHON_INCLUDE_DIR={py_include_dir}',
+        ])
+
+        print(f"Running CMake configure: {' '.join(cmake_configure_cmd)}")
+        subprocess.check_call(cmake_configure_cmd, cwd=build_temp, env=env)
+
+        # Run CMake build and install
+        cmake_build_cmd = ["cmake", "--build", "build", "--target", "install"]
+        print(f"Running CMake build: {' '.join(cmake_build_cmd)}")
+        subprocess.check_call(cmake_build_cmd, cwd=build_temp)
+
+        # --- MODIFIED FILE HANDLING ---
+        
+        install_dir = build_temp / "install"
+
+        # Populate self.distribution.data_files
+        # This tells setuptools to package files into the wheel's .data
+        # directory, which pip will install relative to sys.prefix (the venv root).
+        if not hasattr(self.distribution, 'data_files'):
+            self.distribution.data_files = []
+
+        # Define the directories we want to map from our install prefix
+        # to the venv root (e.g., install/lib -> venv/lib)
+        data_mappings = {"bin": "bin", "cmake": "cmake", "lib": "lib", "lib64": "lib64", "share": "share", "include": "include"}
+
+        for src_name, dest_name in data_mappings.items():
+            src_dir_path = install_dir / src_name
+            if not src_dir_path.is_dir():
+                continue
+
+            # Recursively walk the source directory
+            for dirpath, _, filenames in os.walk(str(src_dir_path)):                   
+                if not filenames:
+                    continue
+
+                # Calculate the destination directory relative to venv root
+                # e.g., "lib/my_package", "share/my_package/launch"
+                rel_dir = os.path.relpath(dirpath, str(src_dir_path))
+                if rel_dir == ".":
+                    dest_dir = dest_name
+                else:
+                    dest_dir = os.path.join(dest_name, rel_dir)
+
+                # Get the full paths to the source files
+                src_files = [os.path.join(dirpath, f) for f in filenames]
+
+                # Add this directory and its files to data_files
+                print(f"Adding to data_files at {dest_dir}:")
+                pprint.pprint(src_files)
+                self.distribution.data_files.append((dest_dir, src_files))
+
+        # DELETED: The old shutil.copytree calls for lib, share, and
+        # include are no longer needed, as data_files handles this.
+
+setup(
+    name="{{ package_name }}",
+    version="{{ version }}",
+    packages=[],
+    # MODIFIED: Removed "install": CustomInstall
+    cmdclass={"build_ext": CMakeBuild},
+    ext_modules=[dummy_ext],
+    install_requires={{ run_dependencies | tojson }},
+    extras_require={{ extras_require | tojson }},
+    # MODIFIED: Removed package_data, added data_files
+    data_files=[],  # This will be populated by CMakeBuild
+    zip_safe=False,
+)

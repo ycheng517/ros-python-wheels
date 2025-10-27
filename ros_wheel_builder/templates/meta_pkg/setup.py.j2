@@ -1,0 +1,10 @@
+from setuptools import setup
+
+setup(
+    name="{{ package_name }}",
+    version="{{ version }}",
+    install_requires=[
+        "{{ dependency_name }}=={{ dependency_version }}"
+    ],
+    extras_require={{ extras_require | tojson }},
+)

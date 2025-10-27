@@ -1,54 +1,28 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools]
+packages = ["ros_wheel_builder"]
+
 [project]
-name = "ros-python-wheels"
-version = "0.1.0"
-description = "A tool to convert ROS packages into portable Python wheels"
-readme = "README.md"
-license = "Apache-2.0"
-authors = [
-    {name = "Yifei Cheng", email = "ycheng517+projects@gmail.com"}
-]
-classifiers = [
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Developers",
-    "Operating System :: POSIX :: Linux",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Topic :: Software Development :: Libraries :: Python Modules",
-    "Topic :: System :: Archiving :: Packaging",
-    "Topic :: Utilities"
-]
-requires-python = ">=3.8"
+name = "ros-wheel-builder"
+version = "0.0.1"
 dependencies = [
-    "build",
-    "catkin_pkg",
-    "fire",
-    "pyelftools",
+    "rosdistro",
+    "jinja2",
+    "jupyterlab",
     "requests",
-    "twine",
-    "wheel",
+    "pyyaml",
+    "rosdep",
+    "lxml",
+    "toposort",
+    "cibuildwheel",
+    "ruff",
+    "fire",
+    "twine"
 ]
 
-[project.optional-dependencies]
-push = ["cloudsmith-cli"]
-test = ["pytest", "pytest-xdist"]
-
-[tool.setuptools.packages.find]
-include = ["ros_python_wheels*"]
-
-[project.urls]
-Homepage = "https://github.com/ycheng517/ros-python-wheels"
-Repository = "https://github.com/ycheng517/ros-python-wheels"
-Issues = "https://github.com/ycheng517/ros-python-wheels/issues"
-Documentation = "https://github.com/ycheng517/ros-python-wheels/blob/main/README.md"
-
-[[tool.mypy.overrides]]
-module = ["fire.*"]
-ignore_missing_imports = true
+[project.scripts]
+build-ros-wheel = "ros_wheel_builder.main:main"
+upload-ros-wheel = "ros_wheel_builder.upload:main"
