@@ -1,22 +1,22 @@
 import rclpy
 
-from std_msgs.msg import String
+from builtin_interfaces.msg import Duration
 
 
 def main(args=None):
     rclpy.init(args=args)
 
     node = rclpy.create_node("minimal_publisher")
-    publisher = node.create_publisher(String, "topic", 10)
+    publisher = node.create_publisher(Duration, "topic", 10)
 
-    msg = String()
+    msg = Duration()
     i = 0
 
     def timer_callback():
         nonlocal i
-        msg.data = "Hello World: %d" % i
+        msg.sec = i
         i += 1
-        node.get_logger().info('Publishing: "%s"' % msg.data)
+        node.get_logger().info('Publishing: "%s"' % msg.sec)
         publisher.publish(msg)
 
     timer_period = 0.5  # seconds

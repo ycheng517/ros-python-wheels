@@ -11,22 +11,15 @@ Enable a first-class developer experience when working with ROS in Python projec
 - **Lightweight**: The wheels of rclpy all of its dependencies have a total size of around 15MB.
 - **Portable**: Allows ROS to be run on different Linux distributions.
 
-## Current Limitations
-
-- The Python version must match the Python version for a ROS distribution.
-- Only works for `x86_64-linux-gnu` systems. Linux distributions using GNU includes Ubuntu, Debian, Fedora, and Arch Linux.
-
 ## Python Package Repositories
 
-Packages are hosted at [Cloudsmith](https://cloudsmith.com), where there's a separate repository for each of the currently supported ROS distributions.
-
-- Kilted: https://dl.cloudsmith.io/public/ros-python-wheels/kilted/python/simple/
-- Jazzy: https://dl.cloudsmith.io/public/ros-python-wheels/jazzy/python/simple/
-- Humble: https://dl.cloudsmith.io/public/ros-python-wheels/humble/python/simple/
+Packages are hosted at https://dl.cloudsmith.io/public/ros-python-wheels/kilted/python/simple
 
 ### Available Packages
 
-Open each package repository link in your browser to see the list of packages it contains. Currently common_interfaces and rclpy and their dependencies are uploaded.
+Open each package repository link in your browser to see the list of packages it contains.
+Currently `builtin_interfaces`, `rclpy` and their dependencies are uploaded.
+Please create a Github issue if you'd like to see another package built!
 
 ## Example Usage
 
@@ -37,21 +30,20 @@ Below steps will install and run the ROS Python client for Kilted in a Python 3.
 pip install \
   --extra-index-url https://dl.cloudsmith.io/public/ros-python-wheels/kilted/python/simple/ \
   ros-rclpy[fastrtps]
-
-# set LD_LIBRARY_PATH to the ros_runtime_libs/ directory of site-packages
-# where ros-rclpy is installed
-export LD_LIBRARY_PATH=$(pip show ros-rclpy | awk '/^Location:/ {print $2}')/ros_runtime_libs
-# Set the RMW to use
-export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
-
 # Run rclpy
 python -c "import rclpy; rclpy.init()"
 ```
 
-## Building Wheels
+## Building and Uploading Wheels
 
-The following script builds and uploads packages to Cloudsmith for a given ROS distribution. Cloudsmith credentials are required.
+The following commands build a package and all of its dependencies as wheels, and then upload them to CloudSmith.
+Cloudsmith credentials are required in `~/.pypirc`.
 
 ```bash
-./scripts/run_all.sh <ROS_DISTRO>
+# Install this project
+uv sync
+# Build wheels
+python -m ros_wheel_builder.main build --distro_name <DISTRO> --package_name <PACKAGE_NAME>
+# Upload wheels
+python -m ros_wheel_builder.upload --wheels_dir <WHEELS_DIR> --repository <pypi/testpypi/cloudsmith>
 ```

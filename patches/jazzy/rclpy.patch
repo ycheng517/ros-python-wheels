@@ -1,0 +1,13 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 06c08de..3e074ca 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -40,7 +40,7 @@ find_package(rmw_implementation_cmake REQUIRED)
+ find_package(rosidl_runtime_c REQUIRED)
+ 
+ # Find python before pybind11
+-find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
++find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module)
+ 
+ find_package(pybind11_vendor REQUIRED)
+ find_package(pybind11 REQUIRED)
