@@ -84,16 +84,19 @@ jobs:
       - name: Install ROS Python packages
         run: |
           python3 -m pip install \
-            --extra-index-url https://dl.cloudsmith.io/public/ros-python-wheels/main/python/simple \
+            --extra-index-url https://dl.cloudsmith.io/public/ros-python-wheels/main/python/simple/ \
             ros-rclpy[fastrtps] ros-test-msgs pytest
 
       - name: Basic test to see if rclpy init works
-        shell: python3
+        shell: bash
         run: |
+          # The '-' tells python3 to read the script from standard input
+          python3 - <<EOF
           import rclpy
           rclpy.init()
           print('rclpy initialized successfully')
           rclpy.shutdown()
+          EOF
 
       - name: Make test script executable
         run: chmod +x scripts/run_rclpy_tests.sh
