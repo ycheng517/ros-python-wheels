@@ -28,7 +28,7 @@ Below steps will install and run the ROS Python client for Kilted in a Python 3.
 ```bash
 # install rclpy and dependencies
 pip install \
-  --extra-index-url https://dl.cloudsmith.io/public/ros-python-wheels/kilted/python/simple/ \
+  --extra-index-url https://dl.cloudsmith.io/public/ros-python-wheels/main/python/simple/ \
   ros-rclpy[fastrtps]
 # Run rclpy
 python -c "import rclpy; rclpy.init()"
