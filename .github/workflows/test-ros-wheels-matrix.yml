@@ -88,9 +88,12 @@ jobs:
             ros-rclpy[fastrtps] ros-test-msgs pytest
 
       - name: Basic test to see if rclpy init works
-        shell: bash
+        shell: python3
         run: |
-          python3 -c 'import rclpy; rclpy.init(); print("rclpy initialized successfully"); rclpy.shutdown()'
+          import rclpy
+          rclpy.init()
+          print('rclpy initialized successfully')
+          rclpy.shutdown()
 
       - name: Make test script executable
         run: chmod +x scripts/run_rclpy_tests.sh
