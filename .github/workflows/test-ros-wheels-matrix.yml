@@ -89,7 +89,7 @@ jobs:
 
       - name: Basic test to see if rclpy init works
         run: |
-          python3 -c "import rclpy; rclpy.init(); print('rclpy initialized successfully'); rclpy.shutdown()"
+          python3 -c 'import rclpy; rclpy.init(); print("rclpy initialized successfully"); rclpy.shutdown()'
 
       - name: Make test script executable
         run: chmod +x scripts/run_rclpy_tests.sh
