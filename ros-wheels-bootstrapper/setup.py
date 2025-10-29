@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='ros-wheels-bootstrapper',
-    version='0.1.0',
+    version='0.1.2',
     description='A package to bootstrap the ROS environment for wheels by setting LD_LIBRARY_PATH.',
     author='user',
     author_email='user@example.com',

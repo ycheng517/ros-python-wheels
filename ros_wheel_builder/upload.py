@@ -84,7 +84,6 @@ def upload_wheels(wheels_dir="build/artifacts", repository="testpypi"):
             "twine",
             "upload",
             "--disable-progress-bar",
-            "--verbose",
             "--repository",
             repository,
             dist_file

@@ -8,7 +8,6 @@ Enable a first-class developer experience when working with ROS in Python projec
 
 - **Easy Project Integration**: To include The ROS Python Client ([rclpy](https://github.com/ros2/rclpy)) in a Python project, simply add `ros-rclpy[fastrtps]` with its package repository to your `pyproject.toml` file.
 - **Enable Modern Python Tooling**: Easily manage Python ROS dependencies using modern Python tools like uv, Poetry, and conda
-- **Lightweight**: The wheels of rclpy all of its dependencies have a total size of around 15MB.
 - **Portable**: Allows ROS to be run on different Linux distributions.
 
 ## Python Package Repositories
