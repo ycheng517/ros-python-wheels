@@ -13,7 +13,7 @@ Enable a first-class developer experience when working with ROS in Python projec
 
 ## Python Package Repositories
 
-Packages are hosted at https://dl.cloudsmith.io/public/ros-python-wheels/kilted/python/simple
+Packages are hosted at https://dl.cloudsmith.io/public/ros-python-wheels/main/python/simple
 
 ### Available Packages
 
