@@ -235,7 +235,7 @@ def build_package(
         build_python_deps |= {"setuptools", "wheel"}
         before_build_cmd = ""
         if all_system_deps:
-            before_build_cmd += "dnf install -y " + " ".join(all_system_deps)
+            before_build_cmd += "echo 'fastestmirror=true' >> /etc/dnf/dnf.conf && dnf install -y " + " ".join(all_system_deps)
         if before_build_cmd:
             before_build_cmd += " && "
         before_build_cmd += "pip install " + " ".join(build_python_deps)
@@ -361,7 +361,7 @@ def build_meta_package(
     meta_package_name = f"ros-{distro_name}-{package_name.replace('_', '-')}"
     dependency_name = f"ros-{package_name.replace('_', '-')}"
 
-    meta_pkg_dir = Path("build") / "meta" / meta_package_name
+    meta_pkg_dir = Path("build") / "distro_name" / "meta" / meta_package_name
     meta_pkg_dir.mkdir(parents=True, exist_ok=True)
 
     setup_py_content = wheel_builder.generate_meta_package_setup_py(
@@ -407,7 +407,7 @@ def main(distro_name: str,
     """
     print(f"Building {package_name} for {distro_name}")
 
-    build_dir = Path("build")
+    build_dir = Path("build") / distro_name
     src_dir = build_dir / "src"
     src_dir.mkdir(parents=True, exist_ok=True)
     artifacts_dir = build_dir / "artifacts"

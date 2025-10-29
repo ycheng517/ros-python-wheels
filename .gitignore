@@ -3,6 +3,7 @@ my_commands.txt
 .test_venv/
 log/
 dist_*/
+uploaded_packages_*.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
