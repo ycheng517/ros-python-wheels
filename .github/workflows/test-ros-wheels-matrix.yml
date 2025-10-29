@@ -79,7 +79,7 @@ jobs:
         if: matrix.use-venv == true
         run: |
           curl -LsSf https://astral.sh/uv/install.sh | sh
-          source $HOME/.local/bin/env
+          . $HOME/.local/bin/env
           uv venv -p python${{ matrix.python-version }}
           echo "$(pwd)/.venv/bin" >> $GITHUB_PATH
           uv pip install \
