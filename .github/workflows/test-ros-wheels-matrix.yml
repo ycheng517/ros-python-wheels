@@ -85,7 +85,7 @@ jobs:
       - name: Install ROS Python packages
         run: |
           python3 -m pip install \
-            --extra-index-url https://dl.cloudsmith.io/public/ros-python-wheels/main/python/simple/ \
+            --extra-index-url https://test.pypi.org/simple/ \
             ros-rclpy[fastrtps] ros-test-msgs pytest
 
       - name: Basic test to see if rclpy init works
