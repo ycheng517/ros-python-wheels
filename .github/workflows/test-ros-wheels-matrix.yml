@@ -83,6 +83,7 @@ jobs:
           uv venv -p python${{ matrix.python-version }}
           echo "$(pwd)/.venv/bin" >> $GITHUB_PATH
           uv pip install \
+            --index-strategy unsafe-best-match \
             --extra-index-url https://test.pypi.org/simple/ \
             ros-rclpy[fastrtps] ros-test-msgs pytest
 
