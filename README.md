@@ -1,6 +1,8 @@
 # ROS Python Wheels
 
-Convert ROS packages into Python wheels that can be installed via pip. A select number of packages are hosted on [PyPI](https://pypi.org/) and [Cloudsmith](https://cloudsmith.com).
+Convert ROS packages into Python wheels that can be installed via pip. A select number of packages are hosted on [PyPI](https://pypi.org/).
+
+> **Note:** This repository is still a work in progress. Additional packages for additional Python versions and ROS distributions are continuing to be made available.
 
 ## Benefits
 
@@ -8,12 +10,11 @@ Enable a first-class developer experience when working with ROS in Python projec
 
 - **Easy Project Integration**: To include The ROS Python Client ([rclpy](https://github.com/ros2/rclpy)) in a Python project, simply add `ros-rclpy[fastrtps]` with its package repository to your `pyproject.toml` file.
 - **Enable Modern Python Tooling**: Easily manage Python ROS dependencies using modern Python tools like uv, Poetry, and conda
-- **Lightweight**: The wheels of rclpy all of its dependencies have a total size of around 15MB.
 - **Portable**: Allows ROS to be run on different Linux distributions.
 
 ## Python Package Repositories
 
-Packages are hosted at https://pypi.org/simple/ and https://dl.cloudsmith.io/public/ros-python-wheels/main/python/simple/
+Packages are hosted at https://pypi.org/simple/
 
 ### Available Packages
 
@@ -27,9 +28,7 @@ Below steps will install and run the ROS Python client for Kilted in a Python 3.
 
 ```bash
 # install rclpy and dependencies
-pip install \
-  --extra-index-url https://dl.cloudsmith.io/public/ros-python-wheels/main/python/simple/ \
-  ros-rclpy[fastrtps]
+pip install ros-rclpy[fastrtps]
 # Run rclpy
 python -c "import rclpy; rclpy.init()"
 ```

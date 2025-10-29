@@ -49,13 +49,13 @@ jobs:
           - python-version: "3.13"
             os-type: ubuntu-24.04
             container: ubuntu:24.04
-            install-cmd: apt-get update && apt-get install -y python3 python3-pip python3-venv git
+            install-cmd: apt-get update && apt-get install -y git curl
             ros-distro: jazzy
             use-venv: true
           - python-version: "3.10"
             os-type: ubuntu-24.04
             container: ubuntu:24.04
-            install-cmd: apt-get update && apt-get install -y python3 python3-pip python3-venv git
+            install-cmd: apt-get update && apt-get install -y git curl
             ros-distro: jazzy
             use-venv: true
           # - python-version: "3.13"
@@ -75,17 +75,19 @@ jobs:
       - name: Install system dependencies
         run: ${{ matrix.install-cmd }}
 
-      - name: Create virtual environment (Ubuntu only)
+      - name: Create virtual environment and install ROS Python packages
         if: matrix.use-venv == true
         run: |
-          python3 -m venv /opt/venv
-          echo "/opt/venv/bin" >> $GITHUB_PATH
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          . $HOME/.local/bin/env
+          uv venv -p python${{ matrix.python-version }}
+          echo "$(pwd)/.venv/bin" >> $GITHUB_PATH
+          uv pip install ros-rclpy[fastrtps] ros-test-msgs pytest
 
       - name: Install ROS Python packages
+        if: matrix.use-venv == false
         run: |
-          python3 -m pip install \
-            --extra-index-url https://dl.cloudsmith.io/public/ros-python-wheels/main/python/simple/ \
-            ros-rclpy[fastrtps] ros-test-msgs pytest
+          python3 -m pip install ros-rclpy[fastrtps] ros-test-msgs pytest
 
       - name: Basic test to see if rclpy init works
         shell: bash
@@ -97,9 +99,6 @@ jobs:
           print('rclpy initialized successfully')
           rclpy.shutdown()
           EOF
-
-      - name: Make test script executable
-        run: chmod +x scripts/run_rclpy_tests.sh
 
       - name: Run rclpy tests
         run: ./scripts/run_rclpy_tests.sh ${{ matrix.ros-distro }}

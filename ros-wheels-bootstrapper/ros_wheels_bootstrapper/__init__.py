@@ -1,6 +1,5 @@
 import os
 import sys
-import site
 from pathlib import Path
 
 def get_ros_paths():
@@ -8,21 +7,8 @@ def get_ros_paths():
     Calculates the required paths, but does NOT set them.
     Returns a new LD_LIBRARY_PATH string.
     """
-    site_packages = ""
-    try:
-        site_packages_list = site.getsitepackages()
-        if site_packages_list:
-            site_packages = site_packages_list[0]
-    except AttributeError:
-        pass  # Fallback below
-
-    if not site_packages:
-        # Fallback for some environments
-        if sys.platform == "win32":
-            site_packages = os.path.join(sys.prefix, 'Lib', 'site-packages')
-        else:
-            py_version = f'{sys.version_info.major}.{sys.version_info.minor}'
-            site_packages = os.path.join(sys.prefix, 'lib', f'python{py_version}', 'site-packages')
+    py_version = f'{sys.version_info.major}.{sys.version_info.minor}'
+    site_packages = os.path.join(sys.prefix, 'lib', f'python{py_version}', 'site-packages')
 
     # Get existing LD_LIBRARY_PATH, or an empty string. Split it into a list.
     ld_path_parts = [part for part in os.environ.get('LD_LIBRARY_PATH', '').split(os.pathsep) if part]
@@ -41,8 +27,6 @@ def get_ros_paths():
             if libs_dir.is_dir():
                 ld_path_set.add(str(libs_dir.resolve()))
 
-    # Re-join the parts. We put the existing paths at the end.
-    new_parts = list(ld_path_set)
     # The original parts should be preserved in their order, but after the new ones.
     # A simple way is to just put our new finds first.
     final_parts = list(ld_path_set) # This set already includes the original parts
@@ -65,13 +49,11 @@ if not os.environ.get('_ROS_WHEELS_BOOTSTRAP_COMPLETE'):
     # 3. Set the new variables for the *next* process
     new_env['LD_LIBRARY_PATH'] = new_ld_path
     new_env['_ROS_WHEELS_BOOTSTRAP_COMPLETE'] = '1'
-    
-    new_argv = [sys.executable] + sys.argv
-    
+
     try:
         # sys.executable is the path to the python interpreter
         # new_argv is the list of arguments (e.g., ['/usr/bin/python3', 'my_script.py'])
-        os.execve(sys.executable, new_argv, new_env)
+        os.execve(sys.executable, sys.orig_argv, new_env)
         
     except Exception as e:
         sys.stderr.write(f"Failed to bootstrap ROS environment: {e}\n")
