@@ -1,6 +1,6 @@
 # ROS Python Wheels
 
-Convert ROS packages into Python wheels that can be installed via pip. A select number of packages are hosted at Python package repositories on [Cloudsmith](https://cloudsmith.com).
+Convert ROS packages into Python wheels that can be installed via pip. A select number of packages are hosted on [PyPI](https://pypi.org/) and [Cloudsmith](https://cloudsmith.com).
 
 ## Benefits
 
@@ -13,7 +13,7 @@ Enable a first-class developer experience when working with ROS in Python projec
 
 ## Python Package Repositories
 
-Packages are hosted at https://dl.cloudsmith.io/public/ros-python-wheels/main/python/simple
+Packages are hosted at https://pypi.org/simple/ and https://dl.cloudsmith.io/public/ros-python-wheels/main/python/simple/
 
 ### Available Packages
 
