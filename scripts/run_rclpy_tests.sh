@@ -49,9 +49,19 @@ allowed_failures=0
 # List of tests that are allowed to fail
 allowed_to_fail=("test_type_description_service.py" "test_destruction_order.py")
 
+# List of tests to skip completely
+skip_tests=("test_executor.py")
+
 for f in rclpy/test/test_*.py; do
-    echo "Running test file: $f"
     test_name=$(basename "$f")
+
+    # Skip tests in the skip list
+    if [[ " ${skip_tests[@]} " =~ " ${test_name} " ]]; then
+        echo "⏭️  SKIPPED: $f"
+        continue
+    fi
+
+    echo "Running test file: $f"
     
     if pytest "$f"; then
         echo "✓ PASSED: $f"

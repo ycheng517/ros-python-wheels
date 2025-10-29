@@ -82,10 +82,10 @@ jobs:
           . $HOME/.local/bin/env
           uv venv -p python${{ matrix.python-version }}
           echo "$(pwd)/.venv/bin" >> $GITHUB_PATH
+          uv pip install pytest
           uv pip install \
-            --index-strategy unsafe-best-match \
             --extra-index-url https://test.pypi.org/simple/ \
-            ros-rclpy[fastrtps] ros-test-msgs pytest
+            ros-rclpy[fastrtps] ros-test-msgs
 
       - name: Install ROS Python packages
         if: matrix.use-venv == false
@@ -104,9 +104,6 @@ jobs:
           print('rclpy initialized successfully')
           rclpy.shutdown()
           EOF
-
-      - name: Make test script executable
-        run: chmod +x scripts/run_rclpy_tests.sh
 
       - name: Run rclpy tests
         run: ./scripts/run_rclpy_tests.sh ${{ matrix.ros-distro }}
