@@ -17,12 +17,18 @@ This project builds ROS 2 packages into `manylinux` compatible wheels. It can re
 
 ## How it Works
 
-The build process is divided into two stages:
+The build process is as follows:
 
-1.  **Stage 1: Build Dependencies:** The tool first identifies and builds all the _build-time_ dependencies of the target ROS package.
-2.  **Stage 2: Run Dependencies and Target Package:** After the build dependencies are built, the tool builds the _run-time_ dependencies and the target package itself.
+1.  **Dependency Resolution**: The tool takes a target ROS package and a ROS distribution as input. It recursively finds all ROS dependencies (both build and run dependencies) for the target package.
 
-For C++ packages, the tool generates a Python wrapper (`pyproject.toml`, `setup.py`, etc.) and then uses `cibuildwheel` to create the wheel. For Python packages, it uses the standard `build` tool.
+2.  **Build Order Generation**: It then creates a dependency graph of all the ROS packages to be built and generates a topological sort of this graph to determine the correct build order.
+
+3.  **Package Building**: It iterates through the build order and builds each package one by one.
+
+    - For **C++ (CMake) packages**, it generates a Python wrapper (`pyproject.toml`, `setup.py`, a dummy C file) and then uses `cibuildwheel` to build a `manylinux` compatible wheel. The `cibuildwheel` process is configured to install system dependencies (like `ninja-build`) and Python dependencies before building the wheel.
+    - For **Python packages**, it uses the standard `build` tool to create a wheel. It modifies the package name in `pyproject.toml` or `setup.py` to follow a `ros-<package-name>` convention.
+
+4.  **Meta Package Creation**: After building a package, it creates a "meta" package. This meta package has the version of the original package and has a dependency on the wheel that was just built. This allows for easy installation of the correct version of the package for a given ROS distribution. For example, `pip install ros-humble-rclpy` will install the `rclpy` wheel that was built for the `humble` distribution.
 
 ## How to Run a Build
 
@@ -32,16 +38,16 @@ To run a build, you first need to source the virtual environment:
 source .venv/bin/activate
 ```
 
-Then, you can use the `build-ros-wheel` script. For example, to build the `rclpy` package for the `humble` distribution, you would run:
+Then, you can use the `build-ros-wheel` script. For example, to build the `rclpy` package for the `jazzy` distribution, you would run:
 
 ```bash
-python -m ros_wheel_builder.main humble rclpy
+python -m ros_wheel_builder.main --package_name rclpy --distro_name jazzy
 ```
 
 You can also do a dry run to see the build order without actually building anything:
 
 ```bash
-python -m ros_wheel_builder.main humble rclpy --print-only
+python -m ros_wheel_builder.main --package_name rclpy --distro_name jazzy --print-only
 ```
 
 ## How to Upload a Wheel
@@ -73,6 +79,15 @@ python -m ros_wheel_builder.upload remove --repository cloudsmith --package-file
 ```
 
 The upload tracking creates `.uploaded_packages_<repository>.json` files to track which packages have been successfully uploaded to each repository. This prevents duplicate uploads and saves time on subsequent runs.
+
+## The ros_wheel_builder modules
+
+- **`build.py`**: Contains functions to generate `pyproject.toml`, `setup.py`, `dummy.c` and `repair_wheel.sh` files for C++ packages, and a function to generate `setup.py` for meta packages.
+- **`dependency_resolver.py`**: Contains a function to generate a build order for a list of packages.
+- **`distro.py`**: Contains a `Distro` class that provides information about a ROS 2 distribution, including dependencies.
+- **`main.py`**: Contains the main logic for building ROS 2 packages into wheels. It uses the other modules to perform the build.
+- **`ros_distro.py`**: Contains functions to download and parse ROS 2 distribution files.
+- **`upload.py`**: Contains functions to upload wheels to a repository, and to manage the list of uploaded packages.
 
 ## Virtual Environment
 
