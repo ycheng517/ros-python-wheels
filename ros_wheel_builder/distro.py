@@ -13,6 +13,7 @@ IGNORE_LIST = [
     "rmw_connextdds",
     "rmw_fastrtps_dynamic_cpp",
     "rmw_cyclonedds_cpp",
+    "rmw_zenoh_cpp",
 ]
 
 

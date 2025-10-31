@@ -5,7 +5,7 @@ import pprint
 import shutil
 from pathlib import Path
 
-from . import build as wheel_builder
+from . import file_gen
 from .dependency_resolver import generate_build_order
 from .distro import Distro, PackageSource
 from .ros_distro import get_distro_file, find_package, download_source
@@ -206,7 +206,7 @@ def build_package(
         if package_name == "rclpy":
             run_dependency_names.append("ros-wheels-bootstrapper")
         extras_require = get_extras_require(package_name, distro)
-        setup_py_content = wheel_builder.generate_cpp_setup_py(
+        setup_py_content = file_gen.generate_cpp_setup_py(
             package_name,
             version,
             package_name,
@@ -218,6 +218,7 @@ def build_package(
 
         # Add ninja-build as it's always needed for C++ packages
         all_system_deps.add("ninja-build")
+        all_system_deps.add("zip")
         # cmake is already in the image
         if "cmake3" in all_system_deps:
             all_system_deps.remove("cmake3")
@@ -241,13 +242,13 @@ def build_package(
             before_build_cmd += " && "
         before_build_cmd += "pip install " + " ".join(build_python_deps)
 
-        pyproject_toml_content = wheel_builder.generate_cpp_pyproject_toml(
+        pyproject_toml_content = file_gen.generate_cpp_pyproject_toml(
             before_build_cmd
         )
         with open(package_dir / "pyproject.toml", "w") as f:
             f.write(pyproject_toml_content)
 
-        dummy_c_content = wheel_builder.generate_dummy_c()
+        dummy_c_content = file_gen.generate_dummy_c()
         with open(package_dir / "dummy.c", "w") as f:
             f.write(dummy_c_content)
 
@@ -265,7 +266,7 @@ def build_package(
                 shutil.copy2(wheel_file, wheelhouse_dir)
 
         # Create the custom repair script
-        repair_script_content = wheel_builder.generate_repair_script()
+        repair_script_content = file_gen.generate_repair_script()
         repair_script_path = package_dir / "repair_wheel.sh"
         with open(repair_script_path, "w") as f:
             f.write(repair_script_content)
@@ -375,7 +376,7 @@ def build_meta_package(
     meta_pkg_dir = Path("build") / distro_name / "meta" / meta_package_name
     meta_pkg_dir.mkdir(parents=True, exist_ok=True)
 
-    setup_py_content = wheel_builder.generate_meta_package_setup_py(
+    setup_py_content = file_gen.generate_meta_package_setup_py(
         meta_package_name,
         version,
         dependency_name,
@@ -385,7 +386,7 @@ def build_meta_package(
     with open(meta_pkg_dir / "setup.py", "w") as f:
         f.write(setup_py_content)
 
-    pyproject_toml_content = wheel_builder.generate_cpp_pyproject_toml("")
+    pyproject_toml_content = file_gen.generate_cpp_pyproject_toml("")
     with open(meta_pkg_dir / "pyproject.toml", "w") as f:
         f.write(pyproject_toml_content)
 
