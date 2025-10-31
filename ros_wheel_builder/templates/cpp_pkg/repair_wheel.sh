@@ -32,6 +32,13 @@ if [ -d "build" ]; then
             echo "Found temp install lib dir: $INSTALL_LIB_DIR, adding to LD_LIBRARY_PATH"
             FINAL_LD_PATH="$FINAL_LD_PATH:$INSTALL_LIB_DIR"
         fi
+
+        # Add the cmake install lib64 directory (for packages that install to lib64)
+        INSTALL_LIB64_DIR="$(pwd)/$BUILD_TEMP_DIR/install/lib64"
+        if [ -d "$INSTALL_LIB64_DIR" ]; then
+            echo "Found temp install lib64 dir: $INSTALL_LIB64_DIR, adding to LD_LIBRARY_PATH"
+            FINAL_LD_PATH="$FINAL_LD_PATH:$INSTALL_LIB64_DIR"
+        fi
     fi
 fi
 # --- END MODIFIED ---
@@ -57,6 +64,24 @@ for pkg_dir in "$SITE_PACKAGES"/ros_*; do
         done
     fi
 done
+
+echo "Searching for ROS libraries in opt/zenoh_cpp_vendor/lib64/"
+if [ -d "$ENV_PREFIX/opt/zenoh_cpp_vendor/lib64" ]; then
+    echo "Excluding libraries from $ENV_PREFIX/opt/zenoh_cpp_vendor/lib64/"
+    FINAL_LD_PATH="$FINAL_LD_PATH:$ENV_PREFIX/opt/zenoh_cpp_vendor/lib64"
+    for lib in $(find "$ENV_PREFIX/opt/zenoh_cpp_vendor/lib64" -maxdepth 1 -name "*.so*"); do
+        EXCLUDE_OPTS="$EXCLUDE_OPTS --exclude $(basename $lib)"
+    done
+fi
+
+echo "Searching for ROS libraries in lib/x86_64-linux-gnu/"
+if [ -d "$ENV_PREFIX/lib/x86_64-linux-gnu" ]; then
+    echo "Excluding libraries from $ENV_PREFIX/lib/x86_64-linux-gnu/"
+    FINAL_LD_PATH="$FINAL_LD_PATH:$ENV_PREFIX/lib/x86_64-linux-gnu"
+    for lib in $(find "$ENV_PREFIX/lib/x86_64-linux-gnu" -maxdepth 1 -name "*.so*"); do
+        EXCLUDE_OPTS="$EXCLUDE_OPTS --exclude $(basename $lib)"
+    done
+fi
 
 # Use 'export' or 'env' to set the variable for the auditwheel command
 export LD_LIBRARY_PATH="$FINAL_LD_PATH"

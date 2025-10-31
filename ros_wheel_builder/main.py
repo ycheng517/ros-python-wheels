@@ -55,7 +55,7 @@ def get_recursive_build_depends(
 def apply_patch(package_name, distro_name, src_dir):
     patch_dir = Path("patches") / distro_name
     patch_file = patch_dir / f"{package_name}.patch"
-    if not patch_dir.exists():
+    if not patch_file.exists():
         return
 
     package_dir = src_dir / package_name
@@ -361,7 +361,7 @@ def build_meta_package(
     meta_package_name = f"ros-{distro_name}-{package_name.replace('_', '-')}"
     dependency_name = f"ros-{package_name.replace('_', '-')}"
 
-    meta_pkg_dir = Path("build") / "distro_name" / "meta" / meta_package_name
+    meta_pkg_dir = Path("build") / distro_name / "meta" / meta_package_name
     meta_pkg_dir.mkdir(parents=True, exist_ok=True)
 
     setup_py_content = wheel_builder.generate_meta_package_setup_py(

@@ -1,0 +1,26 @@
+diff --git a/cmake/rosidl_generator_py_generate_interfaces.cmake b/cmake/rosidl_generator_py_generate_interfaces.cmake
+index de6a6c6..be3940a 100644
+--- a/cmake/rosidl_generator_py_generate_interfaces.cmake
++++ b/cmake/rosidl_generator_py_generate_interfaces.cmake
+@@ -33,7 +33,7 @@ cmake_minimum_required(VERSION 3.20)
+ cmake_policy(SET CMP0094 NEW)
+ set(Python3_FIND_UNVERSIONED_NAMES FIRST)
+ 
+-find_package(Python3 REQUIRED COMPONENTS Interpreter Development NumPy)
++find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module NumPy)
+ 
+ # Get a list of typesupport implementations from valid rmw implementations.
+ rosidl_generator_py_get_typesupports(_typesupport_impls)
+@@ -160,11 +160,7 @@ add_dependencies(
+   ${rosidl_generate_interfaces_TARGET}__rosidl_typesupport_c
+ )
+ 
+-target_link_libraries(
+-  ${_target_name_lib} PRIVATE
+-  Python3::NumPy
+-  Python3::Python
+-)
++target_include_directories(${_target_name_lib} PUBLIC ${Python3_INCLUDE_DIRS} ${Python3_NumPy_INCLUDE_DIRS})
+ target_include_directories(${_target_name_lib}
+   PRIVATE
+   ${CMAKE_CURRENT_BINARY_DIR}/rosidl_generator_c

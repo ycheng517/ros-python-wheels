@@ -1,0 +1,13 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index c398f64..a9aaa33 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -46,7 +46,7 @@ cmake_policy(SET CMP0094 NEW)
+ set(Python3_FIND_UNVERSIONED_NAMES FIRST)
+ 
+ # Find python before pybind11
+-find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
++find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module)
+ 
+ find_package(pybind11_vendor REQUIRED)
+ find_package(pybind11 REQUIRED)

@@ -54,14 +54,12 @@ def generate_dummy_c():
 
 def generate_repair_script():
     """
-    Generates the repair_wheel.sh script.
+    Returns the content of the repair_wheel.sh script.
     """
-    template_dir = os.path.join(os.path.dirname(__file__), "templates",
-                                "cpp_pkg")
-    env = Environment(loader=FileSystemLoader(template_dir))
-    template = env.get_template("repair_wheel.sh.j2")
-
-    return template.render()
+    script_path = os.path.join(os.path.dirname(__file__), "templates",
+                               "cpp_pkg", "repair_wheel.sh")
+    with open(script_path, 'r') as f:
+        return f.read()
 
 def generate_meta_package_setup_py(package_name, version, dependency_name, dependency_version, extras_require=None):
     """

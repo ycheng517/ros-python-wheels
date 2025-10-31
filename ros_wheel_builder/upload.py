@@ -1,5 +1,4 @@
 import os
-import time
 import json
 from pathlib import Path
 
@@ -48,9 +47,10 @@ def upload_wheels(wheels_dir="build/artifacts", repository="testpypi"):
         wheels_dir: The directory containing the wheels to upload.
         repository: The repository to upload to (cloudsmith, pypi or testpypi).
     """
-    if repository not in ["cloudsmith", "pypi", "testpypi"]:
+    supported = ["cloudsmith", "pypi", "testpypi", "gemfury"]
+    if repository not in supported:
         print(
-            f"Error: repository must be 'cloudsmith', 'pypi' or 'testpypi', got '{repository}'"
+            f"Error: repository must be one of {supported}, got '{repository}'"
         )
         return
 
@@ -89,21 +89,41 @@ def upload_wheels(wheels_dir="build/artifacts", repository="testpypi"):
             dist_file
         ]
         
-        # Only add --skip-existing for repositories that support it (not cloudsmith)
-        if repository != "cloudsmith":
+        # Only add --skip-existing for repositories that support it
+        if repository in ["pypi", "testpypi"]:
             command.insert(-1, "--skip-existing")
         
         print(f"Running command: {' '.join(command)}")
         try:
-            subprocess.run(command, check=True)
+            subprocess.run(command, check=True, capture_output=True, text=True)
             print(f"Successfully uploaded: {package_filename}")
             # Mark package as uploaded
             save_uploaded_package(repository, package_filename)
             uploaded_count += 1
         except subprocess.CalledProcessError as e:
-            print(f"Failed to upload {package_filename}: {e}")
-            print("Stopping upload process on first failure.")
-            return
+            # Check if the error contains "409" (conflict/duplicate) - continue uploading
+            stderr_output = e.stderr if e.stderr else ""
+            stdout_output = e.stdout if e.stdout else ""
+            
+            # Check for 409 conflict in stderr, stdout, or error message
+            if ("409 Conflict" in stderr_output or 
+                "409 Conflict" in stdout_output):
+                print(f"409 conflict error for {package_filename} (likely duplicate)")
+                if stderr_output:
+                    print(f"Error details: {stderr_output.strip()}")
+                print("Continuing with next package...")
+                # Mark as uploaded since it likely already exists
+                save_uploaded_package(repository, package_filename)
+                uploaded_count += 1
+                continue
+            else:
+                print(f"Failed to upload {package_filename}: {e}")
+                if stderr_output:
+                    print(f"Error details: {stderr_output.strip()}")
+                if stdout_output:
+                    print(f"Output details: {stdout_output.strip()}")
+                print("Stopping upload process on first failure.")
+                return
     
     print("\nUpload summary:")
     print(f"  Uploaded: {uploaded_count}")
@@ -111,7 +131,7 @@ def upload_wheels(wheels_dir="build/artifacts", repository="testpypi"):
     print(f"  Total packages: {len(dist_files)}")
 
 
-def list_uploaded_packages(repository="testpypi"):
+def list_uploaded_packages(repository: str):
     """List all packages that have been marked as uploaded for a repository."""
     uploaded_packages = load_uploaded_packages(repository)
     if not uploaded_packages:
@@ -124,7 +144,7 @@ def list_uploaded_packages(repository="testpypi"):
     print(f"\nTotal: {len(uploaded_packages)} packages")
 
 
-def clear_uploaded_packages(repository="testpypi", confirm=False):
+def clear_uploaded_packages(repository: str, confirm: bool = False):
     """Clear the list of uploaded packages for a repository.
     
     Args:
