@@ -16,9 +16,9 @@ def load_uploaded_packages(repository: str) -> set[str]:
     uploaded_file = get_uploaded_packages_file(repository)
     if uploaded_file.exists():
         try:
-            with open(uploaded_file, 'r') as f:
+            with open(uploaded_file, "r") as f:
                 data = json.load(f)
-                return set(data.get('uploaded', []))
+                return set(data.get("uploaded", []))
         except (json.JSONDecodeError, FileNotFoundError):
             return set()
     return set()
@@ -29,9 +29,9 @@ def save_uploaded_package(repository: str, package_filename: str) -> None:
     uploaded_file = get_uploaded_packages_file(repository)
     uploaded_packages = load_uploaded_packages(repository)
     uploaded_packages.add(package_filename)
-    
-    with open(uploaded_file, 'w') as f:
-        json.dump({'uploaded': sorted(list(uploaded_packages))}, f, indent=2)
+
+    with open(uploaded_file, "w") as f:
+        json.dump({"uploaded": sorted(list(uploaded_packages))}, f, indent=2)
 
 
 def is_package_uploaded(repository: str, package_filename: str) -> bool:
@@ -49,9 +49,7 @@ def upload_wheels(wheels_dir="build/artifacts", repository="testpypi"):
     """
     supported = ["cloudsmith", "pypi", "testpypi", "gemfury"]
     if repository not in supported:
-        print(
-            f"Error: repository must be one of {supported}, got '{repository}'"
-        )
+        print(f"Error: repository must be one of {supported}, got '{repository}'")
         return
 
     if not os.path.isdir(wheels_dir):
@@ -59,7 +57,8 @@ def upload_wheels(wheels_dir="build/artifacts", repository="testpypi"):
         return
 
     dist_files = [
-        os.path.join(wheels_dir, f) for f in os.listdir(wheels_dir)
+        os.path.join(wheels_dir, f)
+        for f in os.listdir(wheels_dir)
         if f.endswith(".whl")
     ]
 
@@ -69,16 +68,16 @@ def upload_wheels(wheels_dir="build/artifacts", repository="testpypi"):
 
     uploaded_count = 0
     skipped_count = 0
-    
+
     for dist_file in dist_files:
         package_filename = os.path.basename(dist_file)
-        
+
         # Check if this package has already been uploaded
         if is_package_uploaded(repository, package_filename):
             print(f"Skipping already uploaded package: {package_filename}")
             skipped_count += 1
             continue
-        
+
         # upload each wheel individually with sleep to avoid 429 errors
         command = [
             "twine",
@@ -86,13 +85,13 @@ def upload_wheels(wheels_dir="build/artifacts", repository="testpypi"):
             "--disable-progress-bar",
             "--repository",
             repository,
-            dist_file
+            dist_file,
         ]
-        
+
         # Only add --skip-existing for repositories that support it
         if repository in ["pypi", "testpypi"]:
             command.insert(-1, "--skip-existing")
-        
+
         print(f"Running command: {' '.join(command)}")
         try:
             subprocess.run(command, check=True, capture_output=True, text=True)
@@ -104,10 +103,9 @@ def upload_wheels(wheels_dir="build/artifacts", repository="testpypi"):
             # Check if the error contains "409" (conflict/duplicate) - continue uploading
             stderr_output = e.stderr if e.stderr else ""
             stdout_output = e.stdout if e.stdout else ""
-            
+
             # Check for 409 conflict in stderr, stdout, or error message
-            if ("409 Conflict" in stderr_output or 
-                "409 Conflict" in stdout_output):
+            if "409 Conflict" in stderr_output or "409 Conflict" in stdout_output:
                 print(f"409 conflict error for {package_filename} (likely duplicate)")
                 if stderr_output:
                     print(f"Error details: {stderr_output.strip()}")
@@ -124,7 +122,7 @@ def upload_wheels(wheels_dir="build/artifacts", repository="testpypi"):
                     print(f"Output details: {stdout_output.strip()}")
                 print("Stopping upload process on first failure.")
                 return
-    
+
     print("\nUpload summary:")
     print(f"  Uploaded: {uploaded_count}")
     print(f"  Skipped (already uploaded): {skipped_count}")
@@ -137,7 +135,7 @@ def list_uploaded_packages(repository: str):
     if not uploaded_packages:
         print(f"No packages have been marked as uploaded for repository '{repository}'")
         return
-    
+
     print(f"Packages marked as uploaded for repository '{repository}':")
     for package in sorted(uploaded_packages):
         print(f"  {package}")
@@ -146,28 +144,30 @@ def list_uploaded_packages(repository: str):
 
 def clear_uploaded_packages(repository: str, confirm: bool = False):
     """Clear the list of uploaded packages for a repository.
-    
+
     Args:
         repository: The repository to clear
         confirm: If True, skip confirmation prompt
     """
     uploaded_file = get_uploaded_packages_file(repository)
-    
+
     if not uploaded_file.exists():
         print(f"No uploaded packages file found for repository '{repository}'")
         return
-    
+
     uploaded_packages = load_uploaded_packages(repository)
     if not uploaded_packages:
         print(f"No packages marked as uploaded for repository '{repository}'")
         return
-    
+
     if not confirm:
-        response = input(f"Are you sure you want to clear {len(uploaded_packages)} uploaded packages for '{repository}'? (y/N): ")
-        if response.lower() != 'y':
+        response = input(
+            f"Are you sure you want to clear {len(uploaded_packages)} uploaded packages for '{repository}'? (y/N): "
+        )
+        if response.lower() != "y":
             print("Cancelled.")
             return
-    
+
     uploaded_file.unlink()
     print(f"Cleared uploaded packages list for repository '{repository}'")
 
@@ -175,28 +175,34 @@ def clear_uploaded_packages(repository: str, confirm: bool = False):
 def remove_uploaded_package(repository, package_filename):
     """Remove a specific package from the uploaded packages list."""
     uploaded_packages = load_uploaded_packages(repository)
-    
+
     if package_filename not in uploaded_packages:
-        print(f"Package '{package_filename}' is not marked as uploaded for repository '{repository}'")
+        print(
+            f"Package '{package_filename}' is not marked as uploaded for repository '{repository}'"
+        )
         return
-    
+
     uploaded_packages.remove(package_filename)
-    
+
     uploaded_file = get_uploaded_packages_file(repository)
-    with open(uploaded_file, 'w') as f:
-        json.dump({'uploaded': sorted(list(uploaded_packages))}, f, indent=2)
-    
-    print(f"Removed '{package_filename}' from uploaded packages list for repository '{repository}'")
+    with open(uploaded_file, "w") as f:
+        json.dump({"uploaded": sorted(list(uploaded_packages))}, f, indent=2)
+
+    print(
+        f"Removed '{package_filename}' from uploaded packages list for repository '{repository}'"
+    )
 
 
 def main():
     """Main entry point that supports multiple commands."""
-    fire.Fire({
-        'upload': upload_wheels,
-        'list': list_uploaded_packages,
-        'clear': clear_uploaded_packages,
-        'remove': remove_uploaded_package,
-    })
+    fire.Fire(
+        {
+            "upload": upload_wheels,
+            "list": list_uploaded_packages,
+            "clear": clear_uploaded_packages,
+            "remove": remove_uploaded_package,
+        }
+    )
 
 
 if __name__ == "__main__":

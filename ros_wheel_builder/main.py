@@ -17,7 +17,8 @@ def format_ros_package_name(package_name: str) -> str:
 
 
 def get_recursive_build_depends(
-        distro: Distro, pkg_name: str) -> tuple[set[str], set[str], set[str]]:
+    distro: Distro, pkg_name: str
+) -> tuple[set[str], set[str], set[str]]:
     """Get all recursive dependencies for a set of packages."""
     queue = [pkg_name]
     processed = set()
@@ -32,14 +33,8 @@ def get_recursive_build_depends(
 
         deps = distro.get_build_depends(package)
         ros_deps = {d.dep_name for d in deps if d.source == PackageSource.ROS}
-        python_deps = {
-            d.dep_name
-            for d in deps if d.source == PackageSource.PYTHON
-        }
-        system_deps = {
-            d.dep_name
-            for d in deps if d.source == PackageSource.SYSTEM
-        }
+        python_deps = {d.dep_name for d in deps if d.source == PackageSource.PYTHON}
+        system_deps = {d.dep_name for d in deps if d.source == PackageSource.SYSTEM}
 
         for dep in ros_deps:
             all_ros_deps.add(dep)
@@ -59,7 +54,7 @@ def apply_patch(package_name, distro_name, src_dir):
         return
 
     package_dir = src_dir / package_name
-    
+
     # Check if patch is already applied by doing a dry run first
     # Try a dry run first to see if patch would apply cleanly
     dry_run = subprocess.run(
@@ -67,7 +62,7 @@ def apply_patch(package_name, distro_name, src_dir):
         capture_output=True,
         cwd=package_dir,
     )
-    
+
     if dry_run.returncode == 0:
         # Patch can be applied, so apply it
         print(f"Applying patch for {package_name} in {distro_name}")
@@ -83,21 +78,24 @@ def apply_patch(package_name, distro_name, src_dir):
             capture_output=True,
             cwd=package_dir,
         )
-        
-        if reverse_check.returncode == 0:
-            print(f"Patch for {package_name} in {distro_name} is already applied, skipping")
-        else:
-            print(f"Warning: Patch for {package_name} in {distro_name} cannot be applied and is not already applied")
-            print(f"Patch check failed with: {dry_run.stderr.decode() if dry_run.stderr else 'Unknown error'}")
 
+        if reverse_check.returncode == 0:
+            print(
+                f"Patch for {package_name} in {distro_name} is already applied, skipping"
+            )
+        else:
+            print(
+                f"Warning: Patch for {package_name} in {distro_name} cannot be applied and is not already applied"
+            )
+            print(
+                f"Patch check failed with: {dry_run.stderr.decode() if dry_run.stderr else 'Unknown error'}"
+            )
 
 
 def get_extras_require(package_name: str, distro: Distro) -> dict | None:
     if package_name == "rclpy":
-        dep_version = distro.get_version('rmw_fastrtps_cpp')
-        return {
-            "fastrtps": [f"ros-rmw-fastrtps-cpp<={dep_version}"]
-        }
+        dep_version = distro.get_version("rmw_fastrtps_cpp")
+        return {"fastrtps": [f"ros-rmw-fastrtps-cpp<={dep_version}"]}
     return None
 
 
@@ -115,7 +113,8 @@ def build_package(
         package_info = find_package(distro_data, package_name)
         if package_info is None:
             raise ValueError(
-                f"Package {package_name} not in distro {distro.distro_name}")
+                f"Package {package_name} not in distro {distro.distro_name}"
+            )
         download_source(package_name, package_info, src_dir)
 
     apply_patch(package_name, distro.distro_name, src_dir)
@@ -177,12 +176,12 @@ def build_package(
         print(f"{package_name} is a C++ package, generating build shim...")
 
         # Get the specific build dependencies for this package
-        build_ros_deps, build_python_deps, build_system_deps = get_recursive_build_depends(
-            distro, package_name)
+        build_ros_deps, build_python_deps, build_system_deps = (
+            get_recursive_build_depends(distro, package_name)
+        )
         # Assume we've already built it, so now it's a python dep
         for dep_name in build_ros_deps:
-            formatted_dep_name = format_ros_package_name(
-                dep_name)
+            formatted_dep_name = format_ros_package_name(dep_name)
             build_python_deps.add(formatted_dep_name)
 
         version = distro.get_version(package_name)
@@ -192,8 +191,7 @@ def build_package(
         for dep in run_deps:
             if dep.source == PackageSource.ROS:
                 # Format ROS dependencies with the new naming convention
-                formatted_name = format_ros_package_name(
-                    dep.dep_name)
+                formatted_name = format_ros_package_name(dep.dep_name)
 
                 # Get the version of the dependency
                 dep_version = distro.get_version(dep.dep_name)
@@ -235,13 +233,17 @@ def build_package(
         build_python_deps |= {"setuptools", "wheel"}
         before_build_cmd = ""
         if all_system_deps:
-            before_build_cmd += "echo 'fastestmirror=true' >> /etc/dnf/dnf.conf && dnf install -y " + " ".join(all_system_deps)
+            before_build_cmd += (
+                "echo 'fastestmirror=true' >> /etc/dnf/dnf.conf && dnf install -y "
+                + " ".join(all_system_deps)
+            )
         if before_build_cmd:
             before_build_cmd += " && "
         before_build_cmd += "pip install " + " ".join(build_python_deps)
 
         pyproject_toml_content = wheel_builder.generate_cpp_pyproject_toml(
-            before_build_cmd)
+            before_build_cmd
+        )
         with open(package_dir / "pyproject.toml", "w") as f:
             f.write(pyproject_toml_content)
 
@@ -257,8 +259,9 @@ def build_package(
         wheelhouse_dir.mkdir(exist_ok=True)
         for wheel_file in artifacts_dir.glob("*.whl"):
             destination_path = wheelhouse_dir / wheel_file.name
-            if not (destination_path.exists()
-                    and destination_path.samefile(wheel_file)):
+            if not (
+                destination_path.exists() and destination_path.samefile(wheel_file)
+            ):
                 shutil.copy2(wheel_file, wheelhouse_dir)
 
         # Create the custom repair script
@@ -304,10 +307,13 @@ def build_package(
 
             # Replace name = "original_name" with name = "ros-distro-name"
             import re
-            content = re.sub(r'^(\s*name\s*=\s*)["\']([^"\']+)["\']',
-                             fr'\g<1>"{pkg_name_fmt}"',
-                             content,
-                             flags=re.MULTILINE)
+
+            content = re.sub(
+                r'^(\s*name\s*=\s*)["\']([^"\']+)["\']',
+                rf'\g<1>"{pkg_name_fmt}"',
+                content,
+                flags=re.MULTILINE,
+            )
 
             with open(pyproject_path, "w") as f:
                 f.write(content)
@@ -321,16 +327,20 @@ def build_package(
             import re
 
             # First, handle direct string literals: name = "package_name"
-            content = re.sub(r'^(\s*name\s*=\s*)["\']([^"\']+)["\']',
-                             fr'\g<1>"{pkg_name_fmt}"',
-                             content,
-                             flags=re.MULTILINE)
+            content = re.sub(
+                r'^(\s*name\s*=\s*)["\']([^"\']+)["\']',
+                rf'\g<1>"{pkg_name_fmt}"',
+                content,
+                flags=re.MULTILINE,
+            )
 
             # Then, handle when name=package_name (variable reference) - replace with direct string
-            content = re.sub(r'^(\s*name\s*=\s*)package_name\s*,?\s*$',
-                             fr'\g<1>"{pkg_name_fmt}",',
-                             content,
-                             flags=re.MULTILINE)
+            content = re.sub(
+                r"^(\s*name\s*=\s*)package_name\s*,?\s*$",
+                rf'\g<1>"{pkg_name_fmt}",',
+                content,
+                flags=re.MULTILINE,
+            )
 
             with open(setup_py_path, "w") as f:
                 f.write(content)
@@ -347,6 +357,7 @@ def build_package(
             check=True,
             cwd=package_dir,
         )
+
 
 def build_meta_package(
     package_name,
@@ -392,10 +403,12 @@ def build_meta_package(
     )
 
 
-def main(distro_name: str,
-         package_name: str,
-         print_only: bool = False,
-         skip_existing: bool = False):
+def main(
+    distro_name: str,
+    package_name: str,
+    print_only: bool = False,
+    skip_existing: bool = False,
+):
     """
     Build a ROS 2 package into a manylinux wheel.
 
@@ -483,10 +496,11 @@ def main(distro_name: str,
         return
     for pkg_name in build_order:
         pkg_name_fmt = format_ros_package_name(pkg_name)
-        pkg_name_fmt_ = pkg_name_fmt.replace('-', '_')
+        pkg_name_fmt_ = pkg_name_fmt.replace("-", "_")
         if skip_existing and (
-                any(artifacts_dir.glob(f"{pkg_name_fmt}-*.whl"))
-                or any(artifacts_dir.glob(f"{pkg_name_fmt_}-*.whl"))):
+            any(artifacts_dir.glob(f"{pkg_name_fmt}-*.whl"))
+            or any(artifacts_dir.glob(f"{pkg_name_fmt_}-*.whl"))
+        ):
             print(f"Skipping {pkg_name}, already built.")
             continue
 
@@ -544,7 +558,9 @@ def info(distro_name: str, package_name: str):
 
 
 if __name__ == "__main__":
-    fire.Fire({
-        'build': main,
-        'info': info,
-    })
+    fire.Fire(
+        {
+            "build": main,
+            "info": info,
+        }
+    )

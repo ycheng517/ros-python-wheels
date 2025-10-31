@@ -32,8 +32,7 @@ class Dependency:
 
 
 DEPENDENCY_MAP: dict[str, Dependency] = {
-    "pybind11-dev":
-    Dependency(
+    "pybind11-dev": Dependency(
         ros_name="pybind11-dev",
         source=PackageSource.PYTHON,
         dep_name="pybind11",
@@ -54,12 +53,10 @@ def get_distribution_with_timeout(index, dist_name, timeout=30):
 
 
 class Distro:
-
     def __init__(self, distro_name):
         self.distro_name = distro_name
         self.index = get_index(get_index_url())
-        self.distro_file = get_distribution_with_timeout(
-            self.index, self.distro_name)
+        self.distro_file = get_distribution_with_timeout(self.index, self.distro_name)
         self.dependency_walker = DependencyWalker(self.distro_file)
 
     def _check_pypi_package_exists(self, package_name):
@@ -69,7 +66,8 @@ class Distro:
         """
         try:
             response = requests.get(
-                f"https://pypi.org/pypi/{package_name}/json", timeout=10)
+                f"https://pypi.org/pypi/{package_name}/json", timeout=10
+            )
             return response.status_code == 200
         except requests.RequestException:
             return False
@@ -98,10 +96,8 @@ class Distro:
                         check=True,
                     )
                     lines_macos = result_macos.stdout.strip().split("\n")
-                    if len(lines_macos) >= 2 and lines_macos[0].startswith(
-                            "#"):
-                        package_manager_macos = lines_macos[0].strip(
-                            "#").strip()
+                    if len(lines_macos) >= 2 and lines_macos[0].startswith("#"):
+                        package_manager_macos = lines_macos[0].strip("#").strip()
                         actual_package_name_macos = lines_macos[1].strip()
 
                         # If macOS uses pip, prefer it as a Python package
@@ -111,8 +107,7 @@ class Distro:
                     pass  # Continue to PyPI fallback
 
                 # Fallback: Extract the actual PyPI package name (remove python3- prefix)
-                pypi_package_name = package_name[
-                    8:]  # Remove "python3-" prefix
+                pypi_package_name = package_name[8:]  # Remove "python3-" prefix
 
                 # Check if the package exists on PyPI
                 if self._check_pypi_package_exists(pypi_package_name):
@@ -164,12 +159,10 @@ class Distro:
             if dep_name in DEPENDENCY_MAP:
                 dependencies.add(DEPENDENCY_MAP[dep_name])
                 continue
-            source, actual_dep_name = self._determine_package_source_and_name(
-                dep_name)
+            source, actual_dep_name = self._determine_package_source_and_name(dep_name)
             dependencies.add(
-                Dependency(ros_name=dep_name,
-                           source=source,
-                           dep_name=actual_dep_name))
+                Dependency(ros_name=dep_name, source=source, dep_name=actual_dep_name)
+            )
         return dependencies
 
     def get_run_depends(self, pkg_name: str) -> set[Dependency]:
@@ -188,12 +181,10 @@ class Distro:
             if dep_name in DEPENDENCY_MAP:
                 dependencies.add(DEPENDENCY_MAP[dep_name])
                 continue
-            source, actual_dep_name = self._determine_package_source_and_name(
-                dep_name)
+            source, actual_dep_name = self._determine_package_source_and_name(dep_name)
             dependencies.add(
-                Dependency(ros_name=dep_name,
-                           source=source,
-                           dep_name=actual_dep_name))
+                Dependency(ros_name=dep_name, source=source, dep_name=actual_dep_name)
+            )
         return dependencies
 
     def get_test_depends(self, pkg_name):
@@ -209,12 +200,10 @@ class Distro:
             if dep_name in DEPENDENCY_MAP:
                 dependencies.add(DEPENDENCY_MAP[dep_name])
                 continue
-            source, actual_dep_name = self._determine_package_source_and_name(
-                dep_name)
+            source, actual_dep_name = self._determine_package_source_and_name(dep_name)
             dependencies.add(
-                Dependency(ros_name=dep_name,
-                           source=source,
-                           dep_name=actual_dep_name))
+                Dependency(ros_name=dep_name, source=source, dep_name=actual_dep_name)
+            )
         return dependencies
 
     def get_released_repo(self, pkg_name):
@@ -224,8 +213,7 @@ class Distro:
         if pkg_name not in self.distro_file.release_packages:
             return None, None
         pkg = self.distro_file.release_packages[pkg_name]
-        repo = self.distro_file.repositories[
-            pkg.repository_name].release_repository
+        repo = self.distro_file.repositories[pkg.repository_name].release_repository
         return repo.url, repo.version
 
     def get_release_package_xml(self, pkg_name):
@@ -239,6 +227,5 @@ class Distro:
         Get the version of a package.
         """
         pkg = self.distro_file.release_packages[pkg_name]
-        repo = self.distro_file.repositories[
-            pkg.repository_name].release_repository
+        repo = self.distro_file.repositories[pkg.repository_name].release_repository
         return repo.version.split("-")[0]
