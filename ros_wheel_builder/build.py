@@ -188,9 +188,7 @@ def build_package(
             )
         before_build_cmd += " && pip install " + " ".join(build_python_deps)
 
-        pyproject_toml_content = file_gen.generate_cpp_pyproject_toml(
-            before_build_cmd
-        )
+        pyproject_toml_content = file_gen.generate_cpp_pyproject_toml(before_build_cmd)
         with open(package_dir / "pyproject.toml", "w") as f:
             f.write(pyproject_toml_content)
 
@@ -510,6 +508,7 @@ def main():
             "info": info,
         }
     )
+
 
 if __name__ == "__main__":
     main()

@@ -9,12 +9,17 @@ echo "Found env prefix at: $ENV_PREFIX"
 SITE_PACKAGES=$(python -c 'import site; print(site.getsitepackages()[0])')
 echo "Found site-packages at: $SITE_PACKAGES"
 
+EXCLUDE_OPTS=""
 # Initialize FINAL_LD_PATH with the existing LD_LIBRARY_PATH, or empty if unset
 FINAL_LD_PATH="${LD_LIBRARY_PATH:-}:$ENV_PREFIX/lib"
+# Exclude libraries from the venv lib directory
+if [ -d "$ENV_PREFIX/lib" ]; then
+    echo "Excluding libraries from $ENV_PREFIX/lib"
+    for lib in $(find "$ENV_PREFIX/lib" -maxdepth 1 -name "*.so*"); do
+        EXCLUDE_OPTS="$EXCLUDE_OPTS --exclude $(basename $lib)"
+    done
+fi
 
-# --- MODIFIED ---
-# Find the temporary build directory and add its build and install/lib to the path
-# This is where dependent libraries from this package are located before wheeling.
 if [ -d "build" ]; then
     PYTHON_ID_PART=$(python -c 'import sys; print(f"{sys.implementation.name}-{sys.version_info.major}{sys.version_info.minor}")')
     BUILD_TEMP_DIR=$(find build -maxdepth 1 -type d -name "temp.*-${PYTHON_ID_PART}" | head -n 1)
@@ -31,6 +36,9 @@ if [ -d "build" ]; then
         if [ -d "$INSTALL_LIB_DIR" ]; then
             echo "Found temp install lib dir: $INSTALL_LIB_DIR, adding to LD_LIBRARY_PATH"
             FINAL_LD_PATH="$FINAL_LD_PATH:$INSTALL_LIB_DIR"
+            for lib in $(find "$INSTALL_LIB_DIR" -name "*.so*"); do
+                EXCLUDE_OPTS="$EXCLUDE_OPTS --exclude $(basename $lib)"
+            done
         fi
 
         # Add the cmake install lib64 directory (for packages that install to lib64)
@@ -38,19 +46,11 @@ if [ -d "build" ]; then
         if [ -d "$INSTALL_LIB64_DIR" ]; then
             echo "Found temp install lib64 dir: $INSTALL_LIB64_DIR, adding to LD_LIBRARY_PATH"
             FINAL_LD_PATH="$FINAL_LD_PATH:$INSTALL_LIB64_DIR"
+            for lib in $(find "$INSTALL_LIB64_DIR" -name "*.so*"); do
+                EXCLUDE_OPTS="$EXCLUDE_OPTS --exclude $(basename $lib)"
+            done
         fi
     fi
-fi
-# --- END MODIFIED ---
-
-EXCLUDE_OPTS=""
-
-# Exclude libraries from the venv lib directory
-if [ -d "$ENV_PREFIX/lib" ]; then
-    echo "Excluding libraries from $ENV_PREFIX/lib"
-    for lib in $(find "$ENV_PREFIX/lib" -maxdepth 1 -name "*.so*"); do
-        EXCLUDE_OPTS="$EXCLUDE_OPTS --exclude $(basename $lib)"
-    done
 fi
 
 echo "Searching for ROS libraries in site-packages..."
@@ -65,20 +65,20 @@ for pkg_dir in "$SITE_PACKAGES"/ros_*; do
     fi
 done
 
-echo "Searching for ROS libraries in opt/zenoh_cpp_vendor/lib64/"
-if [ -d "$ENV_PREFIX/opt/zenoh_cpp_vendor/lib64" ]; then
-    echo "Excluding libraries from $ENV_PREFIX/opt/zenoh_cpp_vendor/lib64/"
-    FINAL_LD_PATH="$FINAL_LD_PATH:$ENV_PREFIX/opt/zenoh_cpp_vendor/lib64"
-    for lib in $(find "$ENV_PREFIX/opt/zenoh_cpp_vendor/lib64" -maxdepth 1 -name "*.so*"); do
+echo "Searching for ROS libraries in lib/x86_64-linux-gnu/"
+if [ -d "$ENV_PREFIX/lib/x86_64-linux-gnu" ]; then
+    FINAL_LD_PATH="$FINAL_LD_PATH:$ENV_PREFIX/lib/x86_64-linux-gnu"
+    for lib in $(find "$ENV_PREFIX/lib/x86_64-linux-gnu" -maxdepth 1 -name "*.so*"); do
+        echo "Excluding library $(basename $lib) from lib/x86_64-linux-gnu/"
         EXCLUDE_OPTS="$EXCLUDE_OPTS --exclude $(basename $lib)"
     done
 fi
 
-echo "Searching for ROS libraries in lib/x86_64-linux-gnu/"
-if [ -d "$ENV_PREFIX/lib/x86_64-linux-gnu" ]; then
-    echo "Excluding libraries from $ENV_PREFIX/lib/x86_64-linux-gnu/"
-    FINAL_LD_PATH="$FINAL_LD_PATH:$ENV_PREFIX/lib/x86_64-linux-gnu"
-    for lib in $(find "$ENV_PREFIX/lib/x86_64-linux-gnu" -maxdepth 1 -name "*.so*"); do
+echo "Searching for ROS libraries in opt/zenoh_cpp_vendor/lib64/"
+if [ -d "$ENV_PREFIX/opt/zenoh_cpp_vendor/lib64" ]; then
+    FINAL_LD_PATH="$FINAL_LD_PATH:$ENV_PREFIX/opt/zenoh_cpp_vendor/lib64"
+    for lib in $(find "$ENV_PREFIX/opt/zenoh_cpp_vendor/lib64" -maxdepth 1 -name "*.so*"); do
+        echo "Excluding library $(basename $lib) from opt/zenoh_cpp_vendor/lib64/"
         EXCLUDE_OPTS="$EXCLUDE_OPTS --exclude $(basename $lib)"
     done
 fi

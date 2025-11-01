@@ -1,6 +1,7 @@
 import os
 import json
 from pathlib import Path
+import re
 
 import fire
 import subprocess
@@ -9,6 +10,63 @@ import subprocess
 def get_uploaded_packages_file(repository: str) -> Path:
     """Get the path to the uploaded packages tracking file for a repository."""
     return Path(f".uploaded_packages_{repository}.json")
+
+
+def parse_wheel_filename(filename: str) -> tuple[str, str]:
+    """Parse package name and version from wheel filename.
+
+    Args:
+        filename: The wheel filename (e.g., "ros_action_msgs-2.0.3-cp310-cp310-manylinux_2_28_x86_64.whl")
+
+    Returns:
+        A tuple of (package_name, version)
+    """
+    # Remove .whl extension
+    basename = filename.replace(".whl", "")
+
+    # Use regex to parse wheel filename according to PEP 427
+    # Format: {name}-{version}(-{build tag})?-{python tag}-{abi tag}-{platform tag}
+    pattern = r"^([^-]+)-([^-]+)(?:-\d+[^-]*)?-[^-]+-[^-]+-[^-]+$"
+    match = re.match(pattern, basename)
+
+    if match:
+        return match.group(1), match.group(2)
+    else:
+        # Fallback: split on first two dashes
+        parts = basename.split("-")
+        if len(parts) >= 2:
+            return parts[0], parts[1]
+        else:
+            raise ValueError(f"Cannot parse wheel filename: {filename}")
+
+
+def yank_gemfury_package(package_name: str, version: str) -> bool:
+    """Yank a package from Gemfury.
+
+    Args:
+        package_name: The name of the package to yank (with underscores from wheel filename)
+        version: The version of the package to yank
+
+    Returns:
+        True if successful, False otherwise
+    """
+    # Convert underscores to hyphens for Gemfury package names
+    gemfury_package_name = package_name.replace("_", "-")
+    command = ["fury", "yank", f"{gemfury_package_name}@{version}", "--force"]
+
+    print(f"Yanking package from Gemfury: {gemfury_package_name}@{version}")
+    try:
+        subprocess.run(command, check=True, capture_output=True, text=True)
+        print(f"Successfully yanked {gemfury_package_name}@{version}")
+        return True
+    except FileNotFoundError:
+        print("Error: 'fury' command not found. Please install Gemfury CLI.")
+        return False
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to yank {gemfury_package_name}@{version}: {e}")
+        if e.stderr:
+            print(f"Error details: {e.stderr.strip()}")
+        return False
 
 
 def load_uploaded_packages(repository: str) -> set[str]:
@@ -105,15 +163,53 @@ def upload_wheels(wheels_dir="build/artifacts", repository="testpypi"):
             stdout_output = e.stdout if e.stdout else ""
 
             # Check for 409 conflict in stderr, stdout, or error message
-            if "409 Conflict" in stderr_output or "409 Conflict" in stdout_output:
+            if (
+                "409" in stderr_output
+                or "409" in stdout_output
+                or "409 Conflict" in str(e)
+            ):
                 print(f"409 conflict error for {package_filename} (likely duplicate)")
                 if stderr_output:
                     print(f"Error details: {stderr_output.strip()}")
-                print("Continuing with next package...")
-                # Mark as uploaded since it likely already exists
-                save_uploaded_package(repository, package_filename)
-                uploaded_count += 1
-                continue
+
+                # For Gemfury, yank the package and retry
+                if repository == "gemfury":
+                    try:
+                        package_name, version = parse_wheel_filename(package_filename)
+                        print("Attempting to yank and retry for Gemfury...")
+
+                        if yank_gemfury_package(package_name, version):
+                            # Retry the upload
+                            print(f"Retrying upload of {package_filename}...")
+                            subprocess.run(
+                                command, check=True, capture_output=True, text=True
+                            )
+                            print(
+                                f"Successfully uploaded after yank: {package_filename}"
+                            )
+                            save_uploaded_package(repository, package_filename)
+                            uploaded_count += 1
+                            continue
+                        else:
+                            print(
+                                f"Failed to yank package, skipping {package_filename}"
+                            )
+                            continue
+                    except Exception as yank_error:
+                        stderr_output = e.stderr if e.stderr else ""
+                        stdout_output = e.stdout if e.stdout else ""
+                        print(f"Error during yank and retry process: {yank_error}")
+                        if stderr_output:
+                            print(f"Error details: {stderr_output.strip()}")
+                        if stdout_output:
+                            print(f"Output details: {stdout_output.strip()}")
+                        continue
+                else:
+                    print("Continuing with next package...")
+                    # Mark as uploaded since it likely already exists for other repositories
+                    save_uploaded_package(repository, package_filename)
+                    uploaded_count += 1
+                    continue
             else:
                 print(f"Failed to upload {package_filename}: {e}")
                 if stderr_output:
