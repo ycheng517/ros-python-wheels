@@ -24,5 +24,5 @@ dependencies = [
 ]
 
 [project.scripts]
-build-ros-wheel = "ros_wheel_builder.main:main"
+build-ros-wheel = "ros_wheel_builder.build:main"
 upload-ros-wheel = "ros_wheel_builder.upload:main"

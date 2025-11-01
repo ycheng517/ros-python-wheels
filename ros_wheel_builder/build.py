@@ -95,7 +95,7 @@ def apply_patch(package_name, distro_name, src_dir):
 def get_extras_require(package_name: str, distro: Distro) -> dict | None:
     if package_name == "rclpy":
         dep_version = distro.get_version("rmw_fastrtps_cpp")
-        return {"fastrtps": [f"ros-rmw-fastrtps-cpp<={dep_version}"]}
+        return {"fastrtps": [f"ros-rmw-fastrtps-cpp~={dep_version}"]}
     return None
 
 
@@ -118,58 +118,6 @@ def build_package(
         download_source(package_name, package_info, src_dir)
 
     apply_patch(package_name, distro.distro_name, src_dir)
-
-    # # HACK for libyaml_vendor
-    # if package_name == "libyaml_vendor":
-    #     cmakelists_path = package_dir / "CMakeLists.txt"
-    #     if cmakelists_path.exists():
-    #         with open(cmakelists_path, "r") as f:
-    #             content = f.read()
-
-    #         old_cmake_args = """      -DINSTALL_INCLUDE_DIR:STRING=include/${PROJECT_NAME}
-    #   ${extra_cmake_args}"""
-    #         new_cmake_args = """      -DINSTALL_INCLUDE_DIR:STRING=include/${PROJECT_NAME}
-    #   -DCMAKE_POLICY_VERSION_MINIMUM=3.5
-    #   ${extra_cmake_args}"""
-
-    #         if old_cmake_args in content:
-    #             new_content = content.replace(old_cmake_args, new_cmake_args)
-    #             with open(cmakelists_path, "w") as f:
-    #                 f.write(new_content)
-
-    # # HACK for pybind11_vendor
-    # if package_name == "pybind11_vendor":
-    #     cmakelists_path = package_dir / "CMakeLists.txt"
-    #     if cmakelists_path.exists():
-    #         with open(cmakelists_path, "r") as f:
-    #             content = f.read()
-
-    #         old_cmake_args = """      -DCMAKE_INSTALL_INCLUDEDIR=include/${PROJECT_NAME}
-    #   ${extra_cmake_args}"""
-    #         new_cmake_args = """      -DCMAKE_INSTALL_INCLUDEDIR=include/${PROJECT_NAME}
-    #   -DCMAKE_POLICY_VERSION_MINIMUM=3.5
-    #   ${extra_cmake_args}"""
-
-    #         if old_cmake_args in content:
-    #             new_content = content.replace(old_cmake_args, new_cmake_args)
-    #             with open(cmakelists_path, "w") as f:
-    #                 f.write(new_content)
-
-    # # HACK for rclpy
-    # if package_name == "rclpy":
-    #     cmakelists_path = package_dir / "CMakeLists.txt"
-    #     if cmakelists_path.exists():
-    #         with open(cmakelists_path, "r") as f:
-    #             content = f.read()
-
-    #         old_find_package = "find_package(Python3 REQUIRED COMPONENTS Interpreter Development)"
-    #         new_find_package = "find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module)"
-
-    #         if old_find_package in content:
-    #             new_content = content.replace(old_find_package,
-    #                                           new_find_package)
-    #             with open(cmakelists_path, "w") as f:
-    #                 f.write(new_content)
 
     is_cmake_package = (package_dir / "CMakeLists.txt").exists()
     if is_cmake_package:
@@ -197,7 +145,7 @@ def build_package(
                 dep_version = distro.get_version(dep.dep_name)
 
                 # Add the version constraint
-                run_dependency_names.append(f"{formatted_name}<={dep_version}")
+                run_dependency_names.append(f"{formatted_name}~={dep_version}")
             elif dep.source == PackageSource.PYTHON:
                 # Keep Python dependencies as-is
                 run_dependency_names.append(dep.dep_name)
@@ -232,15 +180,13 @@ def build_package(
             build_python_deps.add("empy==3.3.4")
 
         build_python_deps |= {"setuptools", "wheel"}
-        before_build_cmd = ""
+        before_build_cmd = "pipx install cmake==3.28.3"
         if all_system_deps:
             before_build_cmd += (
-                "echo 'fastestmirror=true' >> /etc/dnf/dnf.conf && dnf install -y "
+                " && echo 'fastestmirror=true' >> /etc/dnf/dnf.conf && dnf install -y "
                 + " ".join(all_system_deps)
             )
-        if before_build_cmd:
-            before_build_cmd += " && "
-        before_build_cmd += "pip install " + " ".join(build_python_deps)
+        before_build_cmd += " && pip install " + " ".join(build_python_deps)
 
         pyproject_toml_content = file_gen.generate_cpp_pyproject_toml(
             before_build_cmd
@@ -251,9 +197,6 @@ def build_package(
         dummy_c_content = file_gen.generate_dummy_c()
         with open(package_dir / "dummy.c", "w") as f:
             f.write(dummy_c_content)
-
-        # Build wheel
-        print(f"Building wheel for {package_name}")
 
         # Copy all .whl files from artifacts_dir to wheelhouse_dir
         wheelhouse_dir = package_dir / "wheelhouse"
@@ -404,7 +347,7 @@ def build_meta_package(
     )
 
 
-def main(
+def build(
     distro_name: str,
     package_name: str,
     print_only: bool = False,
@@ -495,7 +438,7 @@ def main(
 
     if print_only:
         return
-    for pkg_name in build_order:
+    for i, pkg_name in enumerate(build_order):
         pkg_name_fmt = format_ros_package_name(pkg_name)
         pkg_name_fmt_ = pkg_name_fmt.replace("-", "_")
         if skip_existing and (
@@ -505,6 +448,7 @@ def main(
             print(f"Skipping {pkg_name}, already built.")
             continue
 
+        print(f"Building {pkg_name} ({i + 1}/{len(build_order)})")
         build_package(
             pkg_name,
             distro,
@@ -558,10 +502,14 @@ def info(distro_name: str, package_name: str):
     print("Repository Version:", repo_version)
 
 
-if __name__ == "__main__":
+def main():
+    """Entry point for the build-ros-wheel command."""
     fire.Fire(
         {
-            "build": main,
+            "build": build,
             "info": info,
         }
     )
+
+if __name__ == "__main__":
+    main()
