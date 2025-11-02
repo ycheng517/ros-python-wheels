@@ -154,12 +154,20 @@ def build_package(
         if package_name == "rclpy":
             run_dependency_names.append("ros-wheels-bootstrapper")
         extras_require = get_extras_require(package_name, distro)
+
+        # Extract README information
+        description, long_description = file_gen.get_package_description(
+            package_name, package_dir
+        )
+
         setup_py_content = file_gen.generate_cpp_setup_py(
             package_name,
             version,
             package_name,
             run_dependency_names,
             extras_require=extras_require,
+            description=description,
+            long_description=long_description,
         )
         with open(package_dir / "setup.py", "w") as f:
             f.write(setup_py_content)
@@ -317,12 +325,17 @@ def build_meta_package(
     meta_pkg_dir = Path("build") / distro_name / "meta" / meta_package_name
     meta_pkg_dir.mkdir(parents=True, exist_ok=True)
 
+    description, long_description = file_gen.get_meta_package_description(
+        package_name, distro_name
+    )
     setup_py_content = file_gen.generate_meta_package_setup_py(
         meta_package_name,
         version,
         dependency_name,
         version,
         extras_require=extras_require,
+        description=description,
+        long_description=long_description,
     )
     with open(meta_pkg_dir / "setup.py", "w") as f:
         f.write(setup_py_content)

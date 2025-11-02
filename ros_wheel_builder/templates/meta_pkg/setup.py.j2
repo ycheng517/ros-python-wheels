@@ -7,4 +7,13 @@ setup(
         "{{ dependency_name }}=={{ dependency_version }}"
     ],
     extras_require={{ extras_require | tojson }},
+    {%- if description %}
+    description="{{ description }}",
+    {%- endif %}
+    {%- if long_description %}
+    long_description="""{{ long_description }}""",
+    {%- endif %}
+    {%- if long_description %}
+    long_description_content_type="text/markdown",
+    {%- endif %}
 )

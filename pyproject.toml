@@ -8,6 +8,7 @@ packages = ["ros_wheel_builder"]
 [project]
 name = "ros-wheel-builder"
 version = "0.0.1"
+requires-python = ">= 3.10"
 dependencies = [
     "rosdistro",
     "jinja2",
@@ -20,7 +21,8 @@ dependencies = [
     "cibuildwheel",
     "ruff",
     "fire",
-    "twine"
+    "twine",
+    "google-genai"
 ]
 
 [project.scripts]
