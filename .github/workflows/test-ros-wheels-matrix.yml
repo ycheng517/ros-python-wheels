@@ -87,7 +87,8 @@ jobs:
       - name: Install ROS Python packages
         if: matrix.use-venv == false
         run: |
-          python3 -m pip install ros-rclpy[fastrtps] ros-test-msgs pytest
+          python3 -m pip install --extra-index-url https://${{ secrets.GEMFURY_PULL_TOKEN }}@pypi.fury.io/ycheng517/ \
+            ros-rclpy[fastrtps] ros-test-msgs pytest
 
       - name: Basic test to see if rclpy init works
         shell: bash
