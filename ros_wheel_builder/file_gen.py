@@ -82,7 +82,7 @@ def get_meta_package_description(
     return desc, long_desc
 
 
-def generate_cpp_pyproject_toml(before_build_command):
+def generate_cpp_pyproject_toml(before_build_command, python_versions):
     """
     Generates a pyproject.toml file for a C++ package.
     """
@@ -90,9 +90,16 @@ def generate_cpp_pyproject_toml(before_build_command):
     env = Environment(loader=FileSystemLoader(template_dir))
     template = env.get_template("pyproject.toml.j2")
 
+    # Process python_versions into cibuildwheel build selector
+    # e.g. "3.10,3.11,3.12" -> "cp310-* cp311-* cp312-*"
+    versions = [v.strip() for v in python_versions.split(",")]
+    selectors = [f"cp{v.replace('.', '')}-*" for v in versions]
+    cibw_build_selector = " ".join(selectors)
+
     return template.render(
         build_dependencies=["setuptools", "wheel"],
         before_build_command=before_build_command,
+        cibw_build_selector=cibw_build_selector,
     )
 
 
@@ -147,6 +154,17 @@ def generate_repair_script():
     )
     with open(script_path, "r") as f:
         return f.read()
+
+
+def generate_meta_pyproject_toml():
+    """
+    Generates a pyproject.toml file for a meta package.
+    """
+    return """
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+"""
 
 
 def generate_meta_package_setup_py(

@@ -3,7 +3,7 @@ requires = {{ build_dependencies | tojson }}
 build-backend = "setuptools.build_meta"
 
 [tool.cibuildwheel]
-build = "cp31{0,3}-*"
+build = "{{ cibw_build_selector }}"
 manylinux-x86_64-image = "manylinux_2_28"
 skip = ["*i686", "*-musllinux_*"]
 before-build = "{{ before_build_command }}"

@@ -105,6 +105,7 @@ def build_package(
     distro_data,
     src_dir,
     artifacts_dir,
+    python_versions: str,
 ):
     package_dir = src_dir / package_name
 
@@ -196,7 +197,9 @@ def build_package(
             )
         before_build_cmd += " && pip install " + " ".join(build_python_deps)
 
-        pyproject_toml_content = file_gen.generate_cpp_pyproject_toml(before_build_cmd)
+        pyproject_toml_content = file_gen.generate_cpp_pyproject_toml(
+            before_build_cmd, python_versions
+        )
         with open(package_dir / "pyproject.toml", "w") as f:
             f.write(pyproject_toml_content)
 
@@ -340,7 +343,7 @@ def build_meta_package(
     with open(meta_pkg_dir / "setup.py", "w") as f:
         f.write(setup_py_content)
 
-    pyproject_toml_content = file_gen.generate_cpp_pyproject_toml("")
+    pyproject_toml_content = file_gen.generate_meta_pyproject_toml()
     with open(meta_pkg_dir / "pyproject.toml", "w") as f:
         f.write(pyproject_toml_content)
 
@@ -363,6 +366,7 @@ def build(
     package_name: str,
     print_only: bool = False,
     skip_existing: bool = False,
+    python_versions: str = "3.10,3.11,3.12,3.13,3.14,3.14t",
 ):
     """
     Build a ROS 2 package into a manylinux wheel.
@@ -372,6 +376,7 @@ def build(
         package_name (str): The name of the ROS 2 package to build.
         print_only (bool): If True, only print the build order without building.
         skip_existing (bool): If True, skip packages that have already been built.
+        python_versions (str): A comma-separated list of Python versions to build for.
     """
     print(f"Building {package_name} for {distro_name}")
 
@@ -449,23 +454,48 @@ def build(
 
     if print_only:
         return
+
+    py_versions = [v.strip() for v in python_versions.split(",")]
+
     for i, pkg_name in enumerate(build_order):
         pkg_name_fmt = format_ros_package_name(pkg_name)
         pkg_name_fmt_ = pkg_name_fmt.replace("-", "_")
-        if skip_existing and (
-            any(artifacts_dir.glob(f"{pkg_name_fmt}-*.whl"))
-            or any(artifacts_dir.glob(f"{pkg_name_fmt_}-*.whl"))
-        ):
-            print(f"Skipping {pkg_name}, already built.")
+
+        py_versions_to_build = py_versions
+        if skip_existing:
+            existing_wheels = list(artifacts_dir.glob(f"{pkg_name_fmt}-*.whl")) + list(
+                artifacts_dir.glob(f"{pkg_name_fmt_}-*.whl")
+            )
+
+            if existing_wheels:
+                missing_versions = []
+                for py_ver in py_versions:
+                    py_ver_short = py_ver.replace(".", "")
+                    if not any(f"cp{py_ver_short}" in whl.name for whl in existing_wheels):
+                        missing_versions.append(py_ver)
+
+                if not missing_versions:
+                    print(f"Skipping {pkg_name}, all wheels already built.")
+                    continue
+                else:
+                    py_versions_to_build = missing_versions
+
+        if not py_versions_to_build:
+            print(f"Skipping {pkg_name}, no versions to build.")
             continue
 
-        print(f"Building {pkg_name} ({i + 1}/{len(build_order)})")
+        python_versions_to_build_str = ",".join(py_versions_to_build)
+
+        print(
+            f"Building {pkg_name} ({i + 1}/{len(build_order)}) for Python versions: {', '.join(py_versions_to_build)}"
+        )
         build_package(
             pkg_name,
             distro,
             distro_data,
             src_dir,
             artifacts_dir,
+            python_versions_to_build_str,
         )
 
         version = distro.get_version(pkg_name)

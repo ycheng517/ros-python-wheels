@@ -82,10 +82,10 @@ The upload tracking creates `.uploaded_packages_<repository>.json` files to trac
 
 ## The ros_wheel_builder modules
 
-- **`build.py`**: Contains functions to generate `pyproject.toml`, `setup.py`, `dummy.c` and `repair_wheel.sh` files for C++ packages, and a function to generate `setup.py` for meta packages.
+- **`file_gen.py`**: Contains functions to generate `pyproject.toml`, `setup.py`, `dummy.c` and `repair_wheel.sh` files for C++ packages, and a function to generate `setup.py` for meta packages.
 - **`dependency_resolver.py`**: Contains a function to generate a build order for a list of packages.
 - **`distro.py`**: Contains a `Distro` class that provides information about a ROS 2 distribution, including dependencies.
-- **`main.py`**: Contains the main logic for building ROS 2 packages into wheels. It uses the other modules to perform the build.
+- **`build.py`**: Contains the main logic for building ROS 2 packages into wheels. It uses the other modules to perform the build.
 - **`ros_distro.py`**: Contains functions to download and parse ROS 2 distribution files.
 - **`upload.py`**: Contains functions to upload wheels to a repository, and to manage the list of uploaded packages.
 
