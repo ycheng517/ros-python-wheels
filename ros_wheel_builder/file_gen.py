@@ -20,7 +20,7 @@ def generate_description_with_gemini(readme_content, package_name) -> str | None
 
     prompt = f"""
 Based on the following README content for a ROS (Robot Operating System) package named "{package_name}", 
-generate a concise, single-sentence description (maximum 150 characters) that would be suitable for a Python package description field.
+generate a concise, plain text, single-sentence description (maximum 150 characters) that would be suitable for a Python package description field.
 
 The description should:
 - Be clear and informative
@@ -55,11 +55,12 @@ def get_package_description(package_name: str, package_dir: str) -> tuple[str, s
     readme_path = package_path / "README.md"
 
     if not readme_path.exists():
-        return DEFAULT_DESCRIPTION.format(
-            package_name=package_name
-        ), DEFAULT_LONG_DESCRIPTION.format(package_name=package_name)
+        pypi_package_name = f"ros-{package_name.replace('_', '-')}"
+        desc = f"Wheel for the {package_name} ({pypi_package_name}) ROS 2 package."
+        long_desc = f"Wheel for the {package_name} ({pypi_package_name}) ROS 2 package. Built using https://github.com/ycheng517/ros-python-wheels"
+        return desc, long_desc
 
-    readme_content = readme_path.read_text()
+    readme_content = "Built using https://github.com/ycheng517/ros-python-wheels.\n\n" + readme_path.read_text()
     description = generate_description_with_gemini(readme_content, package_path.name)
     if not description:
         description = DEFAULT_DESCRIPTION.format(package_name=package_name)
@@ -75,8 +76,9 @@ def get_meta_package_description(
     Returns:
         tuple: (description, long_description, long_description_content_type)
     """
-    desc = f"Meta-package for {package_name} for ROS 2 {distro_name}."
-    long_desc = f"Meta-package for {package_name} for ROS 2 {distro_name}. Built using https://github.com/ycheng517/ros-python-wheels"
+    pypi_package_name = f"ros-{package_name.replace('_', '-')}"
+    desc = f"Meta-package for {package_name} ({pypi_package_name}) for ROS 2 {distro_name}."
+    long_desc = f"Meta-package for {package_name} ({pypi_package_name}) for ROS 2 {distro_name}. Built using https://github.com/ycheng517/ros-python-wheels"
     return desc, long_desc
 
 
