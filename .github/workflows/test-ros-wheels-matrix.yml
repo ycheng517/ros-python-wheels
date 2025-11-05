@@ -15,12 +15,12 @@ jobs:
       matrix:
         include:
           # Debian slim with different ROS distros
-          # - python-version: "3.10"
-          #   os-type: debian-slim
-          #   container: python:3.10-slim
-          #   install-cmd: apt-get update && apt-get install -y git
-          #   ros-distro: humble
-          #   use-venv: false
+          - python-version: "3.10"
+            os-type: debian-slim
+            container: python:3.10-slim
+            install-cmd: apt-get update && apt-get install -y git
+            ros-distro: jazzy
+            use-venv: false
           - python-version: "3.13"
             os-type: debian-slim
             container: python:3.13-slim
@@ -31,21 +31,20 @@ jobs:
             os-type: debian-slim
             container: python:3.10-slim
             install-cmd: apt-get update && apt-get install -y git
-            ros-distro: jazzy
+            ros-distro: kilted
             use-venv: false
-          # - python-version: "3.13"
-          #   os-type: debian-slim
-          #   container: python:3.13-slim
-          #   install-cmd: apt-get update && apt-get install -y git
-          #   ros-distro: kilted
-          #   use-venv: false
-          # Ubuntu with different ROS distros
-          # - python-version: "3.10"
-          #   os-type: ubuntu-22.04
-          #   container: ubuntu:22.04
-          #   install-cmd: apt-get update && apt-get install -y python3 python3-pip python3-venv git
-          #   ros-distro: humble
-          #   use-venv: true
+          - python-version: "3.13"
+            os-type: debian-slim
+            container: python:3.13-slim
+            install-cmd: apt-get update && apt-get install -y git
+            ros-distro: kilted
+            use-venv: false
+          - python-version: "3.10"
+            os-type: ubuntu-24.04
+            container: ubuntu:24.04
+            install-cmd: apt-get update && apt-get install -y git curl
+            ros-distro: jazzy
+            use-venv: true
           - python-version: "3.13"
             os-type: ubuntu-24.04
             container: ubuntu:24.04
@@ -56,14 +55,14 @@ jobs:
             os-type: ubuntu-24.04
             container: ubuntu:24.04
             install-cmd: apt-get update && apt-get install -y git curl
-            ros-distro: jazzy
+            ros-distro: kilted
             use-venv: true
-          # - python-version: "3.13"
-          #   os-type: ubuntu-24.04
-          #   container: ubuntu:24.04
-          #   install-cmd: apt-get update && apt-get install -y python3 python3-pip python3-venv git
-          #   ros-distro: kilted
-          #   use-venv: true
+          - python-version: "3.13"
+            os-type: ubuntu-24.04
+            container: ubuntu:24.04
+            install-cmd: apt-get update && apt-get install -y git curl
+            ros-distro: kilted
+            use-venv: true
 
     container:
       image: ${{ matrix.container }}
