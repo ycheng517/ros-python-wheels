@@ -15,10 +15,10 @@ case "$ROS_DISTRO" in
         RCLPY_VERSION="3.3.17"
         ;;
     "jazzy")
-        RCLPY_VERSION="7.1.4"
+        RCLPY_VERSION="7.1.6"
         ;;
     "kilted")
-        RCLPY_VERSION="9.1.1"
+        RCLPY_VERSION="9.1.2"
         ;;
     *)
         echo "Error: Unsupported ROS distro '$ROS_DISTRO'"
