@@ -81,13 +81,14 @@ jobs:
           . $HOME/.local/bin/env
           uv venv -p python${{ matrix.python-version }}
           echo "$(pwd)/.venv/bin" >> $GITHUB_PATH
-          uv pip install ros-rclpy[fastrtps] ros-test-msgs pytest
+          uv pip install --extra-index-url https://${{ secrets.GEMFURY_PULL_TOKEN }}@pypi.fury.io/ycheng517/ \
+            ros-${{ matrix.ros-distro }}-rclpy[fastrtps] ros-${{ matrix.ros-distro }}-test-msgs pytest
 
       - name: Install ROS Python packages
         if: matrix.use-venv == false
         run: |
           python3 -m pip install --extra-index-url https://${{ secrets.GEMFURY_PULL_TOKEN }}@pypi.fury.io/ycheng517/ \
-            ros-rclpy[fastrtps] ros-test-msgs pytest
+            ros-${{ matrix.ros-distro }}-rclpy[fastrtps] ros-${{ matrix.ros-distro }}-test-msgs pytest
 
       - name: Basic test to see if rclpy init works
         shell: bash
